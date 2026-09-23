@@ -29,21 +29,17 @@ VAN_CAM = dict(eye=(5.6, 3.9, -2.6), target=(0.0, 1.05, -0.15), fov=40)
 
 # Site name -> manifest name where they differ. Uncertain guesses are marked and should be checked in the contact sheet.
 ALIASES = {
-    'Murphy Bed Queen Closed': 'Murphy Bed Queen Closed v.2',
+    '5 Gallon Toilet': 'Luggable Loo Portable Toilet',
     'Top Wardrobe Rustic': 'Top Wardrobe Rustic v1',
+    'Murphy Bed Queen Closed': 'Murphy Bed Queen Closed v.2',
     'Horizontal Sliding Black RV Window': 'Rectangle Sliding Window',        # guess
     'Floating Shelves Medium': 'Bayka Floating Shelves - Medium 1',
-    'Cube Shells Small': 'Cube Shelves Small',
     'Collapsible Fabric Storage Basket Cubes': 'Seville Foldable Cube Basket',  # guess
     'Corner Kitchen': 'Corner Kitchen Demo',
     'Microwave Oven': 'Microwave',
     '5 Gallon Water Bottle': 'round 5 gallon water jug',
-    'Desk Linmon': 'Desk Linnmon',
     'Magnetic Knife Bar': '10 Inch Magnetic Knife Holder',
-    'Toliet Double Drawer': 'Toilet Double Drawer',
-    '5 Gallon Toliet': 'Dometic 320 Series Toilet',                           # guess
     'Bathroom Vanity Sink': 'eclife  Vanity Sink 16',
-    'Ladder Interor': 'Ladder Interior',
     'Hitch Bike Rack for Car': 'Bike Rack',
 }
 # How each item sits in the van. Anything not listed stands centred on the floor.
@@ -54,10 +50,11 @@ ALIASES = {
 #   awning   on the near (sliding-door) side, rotated to run the van's length, legs on the ground
 PLACEMENT = {}
 for ids, mode in [
-    ('B08 B09 B10 B11 B12 B13 B15 B16 B17 B26 B27 K01 K02 K07 K10 K13 K14 K15 K18 K19 K20 K21 K25 K26 K27 K28 BA01 BA02 BA03 BA04 BA05 A13', 'wall'),
-    ('B18 K16 B30 A04 B31 A05 A19', 'upper'),
+    ('B08 B09 B10 B11 B12 B13 B15 B16 B17 B26 B27 K01 K02 K07 K10 K13 K14 K15 K18 K19 K20 K21 K25 K26 K27 K28 BA01 BA02 BA03 BA04 BA05 A13 '
+     'B37 B38 B39 B40 K35 K36 K37 K38 K39 K41 K42 BA09 BA10 BA12 BA13', 'wall'),
+    ('B18 K16 B30 A04 B31 A05 A19 B41 A38', 'upper'),
     ('K03 K04 K05 K06 K09 K11 K12 K30 BA07 BA08', 'counter'),
-    ('B22 B23 B24 B25 K31 K32 BA06 A12 A23 A24', 'mount'),
+    ('B22 B23 B24 B25 K31 K32 BA06 A12 A23 A24 BA11', 'mount'),
     ('B19 B20 B21 B28 A14', 'ceiling'),
     ('B14 A07', 'hang'),
     ('A25', 'rear'), ('A26', 'hitch'), ('A09 A10', 'awning'),

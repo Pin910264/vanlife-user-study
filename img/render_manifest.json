@@ -416,7 +416,7 @@
   "van_img": "img/van/B30.webp"
  },
  "B31": {
-  "name": "Cube Shells Small",
+  "name": "Cube Shelves Small",
   "matched": "Cube Shelves Small",
   "glb": "Cube_Shelves_Small.glb",
   "placement": "upper",
@@ -793,7 +793,7 @@
   "van_img": "img/van/K24.webp"
  },
  "K25": {
-  "name": "Desk Linmon",
+  "name": "Desk Linnmon",
   "matched": "Desk Linnmon",
   "glb": "Desk_Linnmon.glb",
   "placement": "wall",
@@ -910,7 +910,7 @@
   "van_img": "img/van/K34.webp"
  },
  "BA01": {
-  "name": "Toliet Double Drawer",
+  "name": "Toilet Double Drawer",
   "matched": "Toilet Double Drawer",
   "glb": "Toilet_Double_Drawer.glb",
   "placement": "wall",
@@ -923,14 +923,14 @@
   "van_img": "img/van/BA01.webp"
  },
  "BA02": {
-  "name": "5 Gallon Toliet",
-  "matched": "Dometic 320 Series Toilet",
-  "glb": "Dometic_320_Series_Toilet.glb",
+  "name": "5 Gallon Toilet",
+  "matched": "Luggable Loo Portable Toilet",
+  "glb": "Luggable_Loo_Portable_Toilet.glb",
   "placement": "wall",
   "dims_in": {
-   "width": 13.5,
-   "height": 28.84,
-   "depth": 13.84
+   "width": 13.59,
+   "height": 28.9,
+   "depth": 13.92
   },
   "item_img": "img/item/BA02.webp",
   "van_img": "img/van/BA02.webp"
@@ -1066,7 +1066,7 @@
   "van_img": "img/van/A04.webp"
  },
  "A05": {
-  "name": "Cube Shells Small",
+  "name": "Cube Shelves Small",
   "matched": "Cube Shelves Small",
   "glb": "Cube_Shelves_Small.glb",
   "placement": "upper",
@@ -1157,7 +1157,7 @@
   "van_img": "img/van/A12.webp"
  },
  "A13": {
-  "name": "Ladder Interor",
+  "name": "Ladder Interior",
   "matched": "Ladder Interior",
   "glb": "Ladder_Interior.glb",
   "placement": "wall",
@@ -1454,5 +1454,317 @@
   },
   "item_img": "img/item/A35.webp",
   "van_img": "img/van/A35.webp"
+ },
+ "B36": {
+  "name": "Platform 2Drawers",
+  "matched": "Platform 2Drawers",
+  "glb": "Platform_2Drawers.glb",
+  "placement": "center",
+  "dims_in": {
+   "width": 58.73,
+   "height": 48.6,
+   "depth": 75.94
+  },
+  "item_img": "img/item/B36.webp",
+  "van_img": "img/van/B36.webp"
+ },
+ "B37": {
+  "name": "Murphy Bed",
+  "matched": "Murphy Bed",
+  "glb": "Murphy_Bed.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 41.78,
+   "height": 36.94,
+   "depth": 64.37
+  },
+  "item_img": "img/item/B37.webp",
+  "van_img": "img/van/B37.webp"
+ },
+ "B38": {
+  "name": "Convertible L Bench Bed Mode",
+  "matched": "Convertible L Bench Bed Mode",
+  "glb": "Convertible_L_Bench_Bed_Mode.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 72.15,
+   "height": 21.92,
+   "depth": 53.65
+  },
+  "item_img": "img/item/B38.webp",
+  "van_img": "img/van/B38.webp"
+ },
+ "B39": {
+  "name": "Tall Boho Wardrobe",
+  "matched": "Tall Boho Wardrobe",
+  "glb": "Tall_Boho_Wardrobe.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 20.66,
+   "height": 70.19,
+   "depth": 22.14
+  },
+  "item_img": "img/item/B39.webp",
+  "van_img": "img/van/B39.webp"
+ },
+ "B40": {
+  "name": "Tall Minimalist Wardrobe",
+  "matched": "Tall Minimalist Wardrobe",
+  "glb": "Tall_Minimalist_Wardrobe.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 21.34,
+   "height": 70.11,
+   "depth": 22.14
+  },
+  "item_img": "img/item/B40.webp",
+  "van_img": "img/van/B40.webp"
+ },
+ "B41": {
+  "name": "Bayka Floating Shelves - Small 1",
+  "matched": "Bayka Floating Shelves - Small 1",
+  "glb": "Bayka_Floating_Shelves_-_Small_1.glb",
+  "placement": "upper",
+  "dims_in": {
+   "width": 11.76,
+   "height": 4.91,
+   "depth": 6.15
+  },
+  "item_img": "img/item/B41.webp",
+  "van_img": "img/van/B41.webp"
+ },
+ "K35": {
+  "name": "Fireclay Kitchen Demo",
+  "matched": "Fireclay Kitchen Demo",
+  "glb": "Fireclay_Kitchen_Demo.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 66.21,
+   "height": 72.21,
+   "depth": 24.01
+  },
+  "item_img": "img/item/K35.webp",
+  "van_img": "img/van/K35.webp"
+ },
+ "K36": {
+  "name": "L Kitchen With Slide Out Fridge",
+  "matched": "L Kitchen With Slide Out Fridge",
+  "glb": "L_Kitchen_With_Slide_Out_Fridge.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 66.22,
+   "height": 75.28,
+   "depth": 44.17
+  },
+  "item_img": "img/item/K36.webp",
+  "van_img": "img/van/K36.webp"
+ },
+ "K37": {
+  "name": "Corner Cabinet Modern",
+  "matched": "Corner Cabinet Modern",
+  "glb": "Corner_Cabinet_Modern.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 22.11,
+   "height": 35.47,
+   "depth": 22.11
+  },
+  "item_img": "img/item/K37.webp",
+  "van_img": "img/van/K37.webp"
+ },
+ "K38": {
+  "name": "Corner Cabinet Rustic",
+  "matched": "Corner Cabinet Rustic",
+  "glb": "Corner_Cabinet_Rustic.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 22.11,
+   "height": 35.47,
+   "depth": 22.11
+  },
+  "item_img": "img/item/K38.webp",
+  "van_img": "img/van/K38.webp"
+ },
+ "K39": {
+  "name": "Double Cabinet Modern",
+  "matched": "Double Cabinet Modern",
+  "glb": "Double_Cabinet_Modern.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 44.18,
+   "height": 35.5,
+   "depth": 22.49
+  },
+  "item_img": "img/item/K39.webp",
+  "van_img": "img/van/K39.webp"
+ },
+ "K40": {
+  "name": "7 Gallon Rigid Water Container",
+  "matched": "7 Gallon Rigid Water Container",
+  "glb": "7_Gallon_Rigid_Water_Container.glb",
+  "placement": "center",
+  "dims_in": {
+   "width": 11.26,
+   "height": 16.5,
+   "depth": 11.06
+  },
+  "item_img": "img/item/K40.webp",
+  "van_img": "img/van/K40.webp"
+ },
+ "K41": {
+  "name": "Bench Wooden Crates",
+  "matched": "Bench Wooden Crates",
+  "glb": "Bench_Wooden_Crates.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 39.45,
+   "height": 40.93,
+   "depth": 20.17
+  },
+  "item_img": "img/item/K41.webp",
+  "van_img": "img/van/K41.webp"
+ },
+ "K42": {
+  "name": "L Bench Dinette",
+  "matched": "L Bench Dinette",
+  "glb": "L_Bench_Dinette.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 72.15,
+   "height": 40.95,
+   "depth": 53.65
+  },
+  "item_img": "img/item/K42.webp",
+  "van_img": "img/van/K42.webp"
+ },
+ "K43": {
+  "name": "Adjustable Table Rectangle",
+  "matched": "Adjustable Table Rectangle",
+  "glb": "Adjustable_Table_Rectangle.glb",
+  "placement": "center",
+  "dims_in": {
+   "width": 39.21,
+   "height": 30.91,
+   "depth": 25.11
+  },
+  "item_img": "img/item/K43.webp",
+  "van_img": "img/van/K43.webp"
+ },
+ "K44": {
+  "name": "Adjustable Table Rectangle Long",
+  "matched": "Adjustable Table Rectangle Long",
+  "glb": "Adjustable_Table_Rectangle_Long.glb",
+  "placement": "center",
+  "dims_in": {
+   "width": 51.28,
+   "height": 30.94,
+   "depth": 25.08
+  },
+  "item_img": "img/item/K44.webp",
+  "van_img": "img/van/K44.webp"
+ },
+ "BA09": {
+  "name": "Nature's Composting Toilet",
+  "matched": "Nature's Composting Toilet",
+  "glb": "Nature's_Composting_Toilet.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 20.23,
+   "height": 21.36,
+   "depth": 17.63
+  },
+  "item_img": "img/item/BA09.webp",
+  "van_img": "img/van/BA09.webp"
+ },
+ "BA10": {
+  "name": "Toilet Drawer",
+  "matched": "Toilet Drawer",
+  "glb": "Toilet_Drawer.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 19.76,
+   "height": 18.66,
+   "depth": 40.72
+  },
+  "item_img": "img/item/BA10.webp",
+  "van_img": "img/van/BA10.webp"
+ },
+ "BA11": {
+  "name": "AquaDance Chrome Face Handheld Shower",
+  "matched": "AquaDance Chrome Face Handheld Shower",
+  "glb": "AquaDance_Chrome_Face_Handheld_Shower.glb",
+  "placement": "mount",
+  "dims_in": {
+   "width": 3.96,
+   "height": 32.03,
+   "depth": 11.77
+  },
+  "item_img": "img/item/BA11.webp",
+  "van_img": "img/van/BA11.webp"
+ },
+ "A36": {
+  "name": "Adjustable Table Rectangle",
+  "matched": "Adjustable Table Rectangle",
+  "glb": "Adjustable_Table_Rectangle.glb",
+  "placement": "center",
+  "dims_in": {
+   "width": 39.21,
+   "height": 30.91,
+   "depth": 25.11
+  },
+  "item_img": "img/item/A36.webp",
+  "van_img": "img/van/A36.webp"
+ },
+ "A37": {
+  "name": "Adjustable Table Rectangle Long",
+  "matched": "Adjustable Table Rectangle Long",
+  "glb": "Adjustable_Table_Rectangle_Long.glb",
+  "placement": "center",
+  "dims_in": {
+   "width": 51.28,
+   "height": 30.94,
+   "depth": 25.08
+  },
+  "item_img": "img/item/A37.webp",
+  "van_img": "img/van/A37.webp"
+ },
+ "A38": {
+  "name": "Bayka Floating Shelves - Small 1",
+  "matched": "Bayka Floating Shelves - Small 1",
+  "glb": "Bayka_Floating_Shelves_-_Small_1.glb",
+  "placement": "upper",
+  "dims_in": {
+   "width": 11.76,
+   "height": 4.91,
+   "depth": 6.15
+  },
+  "item_img": "img/item/A38.webp",
+  "van_img": "img/van/A38.webp"
+ },
+ "BA12": {
+  "name": "Dometic 320 Series Toilet",
+  "matched": "Dometic 320 Series Toilet",
+  "glb": "Dometic_320_Series_Toilet.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 14.4,
+   "height": 19.5,
+   "depth": 21.62
+  },
+  "item_img": "img/item/BA12.webp",
+  "van_img": "img/van/BA12.webp"
+ },
+ "BA13": {
+  "name": "Portable Toilet",
+  "matched": "Portable Toilet",
+  "glb": "Portable_Toilet.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 14.79,
+   "height": 16.01,
+   "depth": 16.54
+  },
+  "item_img": "img/item/BA13.webp",
+  "van_img": "img/van/BA13.webp"
  }
 }
