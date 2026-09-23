@@ -923,14 +923,14 @@
   "van_img": "img/van/BA01.webp"
  },
  "BA02": {
-  "name": "Dometic 320 Series Toilet",
-  "matched": "Dometic 320 Series Toilet",
-  "glb": "Dometic_320_Series_Toilet.glb",
+  "name": "5 Gallon Toilet",
+  "matched": "Luggable Loo Portable Toilet",
+  "glb": "Luggable_Loo_Portable_Toilet.glb",
   "placement": "wall",
   "dims_in": {
-   "width": 13.5,
-   "height": 28.84,
-   "depth": 13.84
+   "width": 13.59,
+   "height": 28.9,
+   "depth": 13.92
   },
   "item_img": "img/item/BA02.webp",
   "van_img": "img/van/BA02.webp"
@@ -1740,5 +1740,31 @@
   },
   "item_img": "img/item/A38.webp",
   "van_img": "img/van/A38.webp"
+ },
+ "BA12": {
+  "name": "Dometic 320 Series Toilet",
+  "matched": "Dometic 320 Series Toilet",
+  "glb": "Dometic_320_Series_Toilet.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 14.4,
+   "height": 19.5,
+   "depth": 21.62
+  },
+  "item_img": "img/item/BA12.webp",
+  "van_img": "img/van/BA12.webp"
+ },
+ "BA13": {
+  "name": "Portable Toilet",
+  "matched": "Portable Toilet",
+  "glb": "Portable_Toilet.glb",
+  "placement": "wall",
+  "dims_in": {
+   "width": 14.79,
+   "height": 16.01,
+   "depth": 16.54
+  },
+  "item_img": "img/item/BA13.webp",
+  "van_img": "img/van/BA13.webp"
  }
 }
