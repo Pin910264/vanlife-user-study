@@ -27,7 +27,7 @@ WALL_X = -0.89                                                       # far (driv
 FLOOR_CX, FLOOR_CZ = 0.0, (-1.96 + 1.31) / 2
 VAN_CAM = dict(eye=(5.6, 3.9, -2.6), target=(0.0, 1.05, -0.15), fov=40)
 
-# Site name -> manifest name where they differ. Uncertain guesses are marked and should be checked in the contact sheet.
+# Fallback only: site display name -> manifest name, for item data without a `catalog_name` field.
 ALIASES = {
     '5 Gallon Toilet': 'Luggable Loo Portable Toilet',
     'Top Wardrobe Rustic': 'Top Wardrobe Rustic v1',
@@ -66,6 +66,13 @@ YAW = {n: 180 for n in ['Sofa A Corner', 'Sofa B Corner', 'Murphy Bed Queen Clos
                         'Wardrobe Rustic v2', 'Wide Wardrobe Rustic v2', 'Dometic RMD 10.5XT', 'TV 42inch', 'Decor PictureC', 'Safebox']}
 
 def norm(s): return re.sub(r'[^a-z0-9]', '', s.lower())
+
+def catalog_key(item):
+    """The VanSpace3D / chatbot catalog name for a site item. Items carry it as `catalog_name`; the display `name`
+    is plain English and may change, so it is only a fallback (through the alias table) for data that predates the field."""
+    cat = (item.get('catalog_name') or '').strip()
+    if cat: return cat
+    name = item['name'].strip(); return ALIASES.get(name, name)
 
 def render(prims, W, H, eye, target, fov, ss=2, bg=(245, 246, 248)):
     W2, H2 = W * ss, H * ss
@@ -192,7 +199,8 @@ def main():
     for it in site_items():
         sid = it['id']
         if only and sid not in only: continue
-        name = it['name'].strip(); entry = by_norm.get(norm(ALIASES.get(name, name)))
+        name = it['name'].strip(); key = catalog_key(it)
+        entry = by_norm.get(norm(key))
         if entry is None or not entry.get('glb_exported'):
             print(f'{sid:5s} {name}: no model', flush=True); results[sid] = dict(name=name, matched=None); continue
         mode = PLACEMENT.get(sid, 'center')
