@@ -45,6 +45,13 @@
   #live .it{position:relative}#live .it.chosen{border-color:#34d399}
   #live .it .ck{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#34d399;color:#052e16;font:700 12px/18px -apple-system,Helvetica,sans-serif;text-align:center}
   #live .hist .sub{font-size:12px;color:#94a3b8;margin:0 0 6px}
+  #live .stoprow{display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #374151}
+  #live .stopnote{font-size:12px;color:#94a3b8}
+  #live .stopbtn{border:0;border-radius:10px;padding:10px 16px;font-size:15px;font-weight:800;cursor:pointer;background:#f59e0b;color:#1f1300;box-shadow:0 0 0 0 #f59e0b00;transition:box-shadow .2s}
+  #live .stopbtn:not(:disabled){animation:stoppulse 1.2s ease-in-out infinite}
+  @keyframes stoppulse{0%,100%{box-shadow:0 0 0 0 #f59e0b66}50%{box-shadow:0 0 0 8px #f59e0b00}}
+  #live .stopbtn:disabled{background:#374151;color:#6b7280;cursor:default}
+  #live .stopbtn.sent{background:#22c55e;color:#052e16}
   #live .empty{color:#94a3b8;font-size:13px}
   #live .hist{display:none;margin-top:10px;border-top:1px solid #374151;padding-top:8px;max-height:46vh;overflow-y:auto}
   #live.open .hist{display:block}
@@ -60,14 +67,61 @@
   strip.innerHTML =
     '<div class="hd"><span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote">connecting…</span><span class="sp"></span><button class="tg" id="livetg" style="display:none">Earlier ▾</button></div>'
     + '<div class="row" id="liverow"><div class="empty">Items the assistant names will appear here as it says them — tap one to see it.</div></div>'
-    + '<div class="hist" id="livehist"></div>';
+    + '<div class="hist" id="livehist"></div>'
+    + '<div class="stoprow"><button class="stopbtn" id="livestop" disabled>✋ I wasn\'t done talking</button><span class="stopnote" id="livestopnote">lights up while the assistant is talking — press it to cut in and keep going</span></div>';
   const header = document.querySelector('header') || document.querySelector('.nav');
   (header && header.parentNode) ? header.parentNode.insertBefore(strip, header.nextSibling) : document.body.prepend(strip);
   document.getElementById('livetg').onclick = () => {
     strip.classList.toggle('open');
     const tg = document.getElementById('livetg'); tg.textContent = tg.textContent.replace(/Earlier [▴▾]/, strip.classList.contains('open') ? 'Earlier ▴' : 'Earlier ▾');
-    if (window.liveEvent) window.liveEvent('history_toggle', { open: strip.classList.contains('open') });
+    liveEvent('history_toggle', { open: strip.classList.contains('open') });
   };
+
+  // ── participant interaction log (P2): clicks and searches, one line each ──
+  // Sent as a plain-text POST (no preflight) and ignored on failure; the page
+  // never waits on it.
+  function liveEvent(type, data) {
+    try {
+      fetch(`${FEED}/p/event?key=${encodeURIComponent(KEY)}`, { method: 'POST', keepalive: true,
+        body: JSON.stringify({ type, data: data || {}, t: new Date().toISOString() }) }).catch(() => {});
+    } catch (e) {}
+  }
+  window.liveEvent = liveEvent;
+  if (typeof openItem === 'function') {                   // every item opened, from anywhere on the page
+    const _open = openItem;
+    openItem = function (x) { liveEvent('item_open', { code: x && x.id }); return _open.apply(this, arguments); };
+  }
+  let searchTimer = null;
+  document.addEventListener('input', e => {               // a search, logged after the typing pauses
+    if (e.target && e.target.id === 'search') {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => liveEvent('search', { q: e.target.value }), 800);
+    }
+  });
+  document.addEventListener('click', e => {               // area filter chips
+    const b = e.target && e.target.closest && e.target.closest('[data-filter]');
+    if (b) liveEvent('filter', { filter: b.dataset.filter });
+  });
+  liveEvent('page_open', { href: location.href.replace(/key=[^&]*/, 'key=…') });
+
+  // ── "I wasn't done" (P3): live only while the assistant is speaking ──
+  const stopBtn = document.getElementById('livestop');
+  stopBtn.onclick = async () => {
+    stopBtn.disabled = true; stopBtn.textContent = '✋ …';
+    liveEvent('interrupt', {});
+    try {
+      const r = await fetch(`${FEED}/p/interrupt?key=${encodeURIComponent(KEY)}`, { method: 'POST', body: '{}' });
+      const j = await r.json();
+      stopBtn.classList.add('sent'); stopBtn.textContent = j.accepted ? '✓ go ahead' : '✋ I wasn\'t done talking';
+    } catch (e) { stopBtn.textContent = '✋ I wasn\'t done talking'; }
+    setTimeout(() => { stopBtn.classList.remove('sent'); stopBtn.textContent = '✋ I wasn\'t done talking'; }, 2500);
+  };
+  function setSpeaking(on) {
+    if (on && stopBtn.classList.contains('sent')) return;   // just pressed: stay off until the next reply
+    stopBtn.disabled = !on;
+    const note = document.getElementById('livestopnote');
+    if (note) note.textContent = on ? 'the assistant is talking — press to cut in and keep going' : 'lights up while the assistant is talking';
+  }
 
   const ALL = Object.values(DATA).flat();
   const byCode = code => ALL.find(x => x.id === code);
@@ -90,7 +144,7 @@
     const el = document.createElement('div');
     el.className = 'it' + (isNew ? ' new' : '') + (chosen.has(code) ? ' chosen' : '');
     el.innerHTML = `<img src="${img}" alt=""><div><div class="nm">${(x && x.name) || name || code}</div><div class="cd">${code}</div></div>` + (chosen.has(code) ? '<span class="ck" title="in your van">✓</span>' : '');
-    el.onclick = () => { if (x && typeof openItem === 'function') openItem(x); else searchFor(code); if (window.liveEvent) window.liveEvent('strip_click', { code }); };
+    el.onclick = () => { if (x && typeof openItem === 'function') openItem(x); else searchFor(code); liveEvent('strip_click', { code }); };
     return el;
   }
 
@@ -101,7 +155,7 @@
     g.className = 'kind' + (matches.length ? '' : ' nomatch');
     g.innerHTML = `<div class="kl"><b>${e.name}</b>${matches.length ? 'closest on the site' : 'tap to search'}</div>`;
     for (const code of matches) g.appendChild(itemCard(code, '', isNew));
-    if (!matches.length) g.querySelector('.kl').onclick = () => { searchFor(e.name); if (window.liveEvent) window.liveEvent('kind_click', { label: e.name }); };
+    if (!matches.length) g.querySelector('.kl').onclick = () => { searchFor(e.name); liveEvent('kind_click', { label: e.name }); };
     return g;
   }
 
@@ -151,7 +205,8 @@
       document.getElementById('livedot').className = 'dot on';
       document.getElementById('livenote').textContent = (s.mentions || []).some(m => m.items && m.items.length) ? 'latest reply · tap an item to see it' : 'waiting for the first suggestion';
       render(s.mentions || [], chosenChanged);
-      window.liveSpeaking = !!s.speaking;                   // for the interrupt button (P3)
+      window.liveSpeaking = !!s.speaking;
+      setSpeaking(!!s.speaking);
     } catch (e) {
       if (++failures >= 3) {
         document.getElementById('livedot').className = 'dot';
@@ -159,5 +214,5 @@
       }
     }
   }
-  tick(); setInterval(tick, 2000);
+  tick(); setInterval(tick, 1000);
 })();
