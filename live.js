@@ -38,12 +38,15 @@
   #live .it .nm{font-weight:600;font-size:12px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
   #live .it .cd{font:600 11px Menlo,Consolas,monospace;color:#93c5fd;margin-top:1px}
   #live .it.chosen{border-color:#34d399}
+  #live .it.cur{outline:2px solid #fbbf24;outline-offset:1px}
   #live .it .ck{position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;background:#34d399;color:#052e16;font:700 10px/15px -apple-system,Helvetica,sans-serif;text-align:center}
   #live .kind{flex:0 0 auto;display:flex;gap:6px;align-items:center;padding:2px 0 2px 8px;border-left:3px solid #475569;margin-left:2px}
   #live .kind .kl{flex:0 0 auto;font-size:11px;color:#cbd5e1;max-width:110px;line-height:1.2}
   #live .kind .kl b{display:block;color:#fff;font-size:12px}
   #live .kind.nomatch .kl{cursor:pointer;text-decoration:underline dotted}
   #live .empty{color:#94a3b8;font-size:12px}
+  #live .keys{display:none;font-size:11px;color:#64748b;white-space:nowrap;margin-left:4px}
+  @media(hover:hover) and (pointer:fine){#live .keys{display:inline}}
   #live .hist{display:none;margin-top:6px;border-top:1px solid #374151;padding-top:6px;max-height:40vh;overflow-y:auto}
   #live.open .hist{display:block}
   #live .hist .sub{font-size:11px;color:#94a3b8;margin:0 0 4px}
@@ -66,7 +69,7 @@
   const strip = document.createElement('div');
   strip.id = 'live';
   strip.innerHTML =
-    '<div class="hd"><span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="sp"></span>'
+    '<div class="hd"><span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="keys">← → to flip through them</span><span class="sp"></span>'
     + '<button class="tg" id="livetg" style="display:none">Earlier ▾</button>'
     + '<button class="stopbtn" id="livestop" disabled title="Lights up while the assistant is talking — press it to cut in and keep going">✋ I wasn\'t done</button></div>'
     + '<div class="row" id="liverow"><div class="empty">Items the assistant names appear here as it says them — tap one to see it.</div></div>'
@@ -203,10 +206,31 @@
     const matches = e.matches || [];
     g.className = 'kind' + (matches.length ? '' : ' nomatch');
     g.innerHTML = `<div class="kl"><b>${e.name}</b>${matches.length ? 'closest on the site' : 'tap to search'}</div>`;
-    for (const code of matches) g.appendChild(itemCard(code, '', isNew));
+    for (const code of matches.slice(0, 3)) g.appendChild(itemCard(code, '', isNew));   // 3 is plenty to glance at (P7)
     if (!matches.length) g.querySelector('.kl').onclick = () => { searchFor(e.name); liveEvent('kind_click', { label: e.name }); };
     return g;
   }
+
+  // ← / → walk the current reply's cards and open each one as you go (P8);
+  // Esc (the catalog's own handler) closes the item. Ignored while typing.
+  let cursor = -1;
+  function stepCards(d) {
+    const cards = Array.from(document.querySelectorAll('#liverow .it'));
+    if (!cards.length) return;
+    cursor = (cursor + d + cards.length) % cards.length;
+    cards.forEach((c, i) => c.classList.toggle('cur', i === cursor));
+    const el = cards[cursor];
+    el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    const code = el.querySelector('.cd').textContent, x = byCode(code);
+    if (x && typeof openItem === 'function') openItem(x);
+    liveEvent('strip_key', { code, index: cursor + 1, of: cards.length });
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const t = e.target, tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+    e.preventDefault(); stepCards(e.key === 'ArrowRight' ? 1 : -1);
+  });
 
   function fill(row, items, isNew) {
     row.innerHTML = '';
@@ -220,6 +244,7 @@
     const isNew = latest.turn > shownTurn && shownTurn > 0;
     const changed = latest.turn !== shownTurn || force;
     if (changed) fill(document.getElementById('liverow'), latest.items, isNew);
+    if (isNew) { strip.classList.remove('open'); cursor = -1; }   // a new reply: Earlier folds, the keyboard cursor resets (P7)
     // "Earlier": everything mentioned before the latest reply, each item ONCE
     // (at its most recent mention), newest first — a compact "brought up so far"
     const seen = new Set(latest.items.map(it => it.code || 'kind:' + it.name));
