@@ -124,6 +124,7 @@
 
   // ── "I wasn't done" (P3): live only while the assistant is speaking ──
   const stopBtn = document.getElementById('livestop');
+  stopBtn.title = 'Lights up as soon as the assistant starts working on what you said — press it to keep going';
   stopBtn.onclick = async () => {
     stopBtn.disabled = true; stopBtn.textContent = '✋ …';
     liveEvent('interrupt', {});
@@ -289,5 +290,5 @@
       }
     }
   }
-  tick(); setInterval(tick, 1000);
+  tick(); setInterval(tick, 400);                       // the button must light within half a second of the stop press
 })();
