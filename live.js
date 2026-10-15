@@ -140,7 +140,7 @@
     const catalog = st === 'browse';
     app.style.display = catalog ? '' : 'none';
     planbox.style.display = catalog ? '' : 'none';
-    strip.style.display = (st === 'talk' || catalog) ? '' : 'none';
+    strip.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';   // the rehearsal needs the button in view
     notice.style.display = catalog ? '' : 'none';
     stageBox.style.display = catalog ? 'none' : '';
     stageBox.innerHTML = '';
@@ -148,6 +148,9 @@
       const c = document.createElement('div'); c.className = 'card';
       c.innerHTML = '<h2>Before we start</h2><p>Please read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
       stageBox.appendChild(c);
+    } else if (st === 'demo') {
+      const c = document.createElement('div'); c.className = 'card'; c.id = 'livedemo';
+      stageBox.appendChild(c); applyDemo({ state: 'idle' }, true);
     } else if (st === 'intro') {
       stageBox.appendChild(introCard());
       const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
@@ -157,6 +160,20 @@
       stageBox.appendChild(c);
     }
     if (catalog) window.scrollTo(0, 0);
+  }
+  let demoShown = '';
+  function applyDemo(d, force) {
+    const c = document.getElementById('livedemo'); if (!c || shownStage !== 'demo') return;
+    const st = (d && d.state) || 'idle';
+    if (st === demoShown && !force) return;
+    demoShown = st;
+    const views = {
+      idle: '<h2>Try something first</h2><p>In a moment the assistant will start thinking. You will hear a soft trill, and the <b>✋ I wasn\'t done</b> button at the top turns amber.</p><p class="hint" style="margin-top:14px">Press it while the trill is playing.</p>',
+      thinking: '<h2>It\'s thinking now</h2><p style="font-size:22px">Press <b>✋ I wasn\'t done</b> at the top of the page.</p>',
+      done: '<h2>✓ That\'s it</h2><p>The button lights up whenever the assistant is listening to you or thinking, and stays grey the rest of the time. Press it any time it starts before you have finished, and keep talking.</p>',
+      missed: '<h2>Not this time</h2><p>The trill has stopped. The researcher will run it once more — press <b>✋ I wasn\'t done</b> at the top while the trill plays.</p>',
+    };
+    c.innerHTML = views[st] || views.idle;
   }
   function applyWords(words) {
     const w = stageBox.querySelector('.words'); if (!w) return;
@@ -368,7 +385,7 @@
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
-      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro);
+      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDemo(s.demo);
       const ck = (s.chosen || []).join(',');
       const chosenChanged = ck !== chosenKey;
       if (chosenChanged) { chosen = new Set(s.chosen || []); chosenKey = ck; }
