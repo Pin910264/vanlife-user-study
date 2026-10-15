@@ -44,7 +44,7 @@
   #live .kind .kl{flex:0 0 auto;font-size:11px;color:#cbd5e1;max-width:110px;line-height:1.2}
   #live .kind .kl b{display:block;color:#fff;font-size:12px}
   #live .kind.nomatch .kl{cursor:pointer;text-decoration:underline dotted}
-  #live .empty{color:#94a3b8;font-size:12px}
+  #live .none{color:#94a3b8;font-size:12px;padding:4px 0}        /* not '.empty': the catalog styles that with 60px of padding, which made the bar 185px tall (10-14) */
   #live .keys{display:none;font-size:11px;color:#64748b;white-space:nowrap;margin-left:4px}
   @media(hover:hover) and (pointer:fine){#live .keys{display:inline}}
   #live .hist{display:none;margin-top:6px;border-top:1px solid #374151;padding-top:6px;max-height:40vh;overflow-y:auto}
@@ -72,7 +72,7 @@
     '<div class="hd"><span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="keys">← → to flip through them</span><span class="sp"></span>'
     + '<button class="tg" id="livetg" style="display:none">Earlier ▾</button>'
     + '<button class="stopbtn" id="livestop" disabled title="Lights up while the assistant is talking — press it to cut in and keep going">✋ I wasn\'t done</button></div>'
-    + '<div class="row" id="liverow"><div class="empty">Items the assistant names appear here as it says them — tap one to see it.</div></div>'
+    + '<div class="row" id="liverow"><div class="none">Items the assistant names appear here as it says them — tap one to see it.</div></div>'
     + '<div class="hist" id="livehist"></div>';
   const planbox = document.createElement('div');
   planbox.id = 'liveplanbox';
