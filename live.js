@@ -107,7 +107,8 @@
   app.parentNode.insertBefore(notice, app);
   notice.innerHTML = '<div class="card"><span>👀</span><div><b>Take a moment to browse your options.</b> When you are ready to start designing, just say so.</div><button class="x" title="hide">×</button></div>';
   notice.querySelector('.x').onclick = () => { notice.style.display = 'none'; liveEvent('notice_closed', {}); };
-  const FIELDS = [['who', 'who'], ['where', 'where'], ['when', 'time of year'], ['activity', 'activity']];
+  const FIELDS = [['from', 'where you start'], ['who', 'who'], ['where', 'where'], ['when', 'time of year'], ['activity', 'activity']];
+  const LEAD = "I am ready to start designing. ";   // the fixed opening: the wizard knows this is the sentence, not a stray turn
   // what they typed survives a reload of THIS session only: the store is keyed by the
   // session's participant key, so a new session (new key) starts blank even on a device
   // that ran an earlier one (10-14: a test came up pre-filled with the previous run)
@@ -115,7 +116,7 @@
   let intro = {};
   try { intro = JSON.parse(localStorage.getItem(INTRO_KEY) || '{}') || {}; } catch (e) {}
   try { Object.keys(localStorage).filter(k => k.startsWith('liveintro') && k !== INTRO_KEY).forEach(k => localStorage.removeItem(k)); } catch (e) {}
-  const sentenceText = v => `I'm going on a one-month trip with ${v.who || '___'} to ${v.where || '___'} in ${v.when || '___'}. During the trip, we'll be ${v.activity || '___'}.`;
+  const sentenceText = v => `${LEAD}I'm going on a one-month trip from ${v.from || '___'} with ${v.who || '___'} to ${v.where || '___'} in ${v.when || '___'}. During the trip, we'll be ${v.activity || '___'}.`;
   let introTimer = null;
   function sendIntro() {
     clearTimeout(introTimer);
@@ -124,9 +125,11 @@
   function fit(inp) { inp.style.width = Math.max((inp.value || inp.placeholder).length + 3, 5) + 'ch'; }   // 'ch' is narrower than most letters in Inter
   function introCard() {
     const c = document.createElement('div'); c.className = 'card';
-    c.innerHTML = '<h2>Your trip</h2><div class="sentence"></div><p class="hint">Take a minute to fill this in. When you are ready to start designing, read it aloud to the assistant.</p>';
+    c.innerHTML = '<h2>Your trip</h2><div class="sentence"></div><p class="hint">Take a minute to fill this in. When you are ready to start designing, press the button and read the whole line aloud, starting with "I am ready".</p>'
+      + '<p style="margin-top:18px"><button id="livego" style="font-size:17px;padding:13px 24px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer">I\'m ready — start</button></p>';
     const sen = c.querySelector('.sentence');
-    const parts = ["I'm going on a one-month trip with ", 'who', ' to ', 'where', ' in ', 'when', '. During the trip, we\'ll be ', 'activity', '.'];
+    const lead = document.createElement('b'); lead.textContent = LEAD; lead.style.color = '#111827'; sen.appendChild(lead);
+    const parts = ["I'm going on a one-month trip from ", 'from', ' with ', 'who', ' to ', 'where', ' in ', 'when', '. During the trip, we\'ll be ', 'activity', '.'];
     for (const part of parts) {
       const f = FIELDS.find(x => x[0] === part);
       if (!f) { sen.appendChild(document.createTextNode(part)); continue; }
@@ -135,6 +138,18 @@
       inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const all = [...sen.querySelectorAll('input')]; const n = all[all.indexOf(inp) + 1]; if (n) n.focus(); else inp.blur(); } };
       fit(inp); sen.appendChild(inp);
     }
+    const go = c.querySelector('#livego');
+    // the button stays grey until every blank is filled: the line is the context for the whole session (10-15)
+    const ready = () => FIELDS.every(f => (intro[f[0]] || '').trim());
+    const refresh = () => { const ok = ready(); go.disabled = !ok; go.style.opacity = ok ? '1' : '.35'; go.style.cursor = ok ? 'pointer' : 'default'; go.title = ok ? '' : 'Fill in every blank first'; };
+    c.querySelectorAll('input').forEach(inp => inp.addEventListener('input', refresh));
+    refresh();
+    go.onclick = () => {
+      if (!ready()) return;
+      // the wizard starts recording on this press, so they read the line straight away
+      go.disabled = true; go.textContent = 'Listening — read the line now'; go.style.background = '#f59e0b'; go.style.color = '#1f1300';
+      liveEvent('start_reading', { ...intro, text: sentenceText(intro) });
+    };
     return c;
   }
   let shownStage = '';
@@ -200,7 +215,7 @@
     const sen = stageBox.querySelector('.sentence'); if (!sen || shownStage !== 'talk') return;
     const v = (serverIntro && serverIntro.text) ? serverIntro : intro;
     sen.innerHTML = '';
-    const parts = ["I'm going on a one-month trip with ", v.who || '___', ' to ', v.where || '___', ' in ', v.when || '___', '. During the trip, we\'ll be ', v.activity || '___', '.'];
+    const parts = ["I'm going on a one-month trip from ", v.from || '___', ' with ', v.who || '___', ' to ', v.where || '___', ' in ', v.when || '___', '. During the trip, we\'ll be ', v.activity || '___', '.'];
     parts.forEach((t, i) => { if (i % 2) { const b = document.createElement('b'); b.textContent = t; sen.appendChild(b); } else sen.appendChild(document.createTextNode(t)); });
   }
   function setPlanBig(big) {
@@ -246,6 +261,10 @@
     if (b) liveEvent('filter', { filter: b.dataset.filter });
   });
   liveEvent('page_open', { href: location.href.replace(/key=[^&]*/, 'key=…') });
+  // what they are doing while it is quiet (10-15): scrolling, and leaving / returning to the tab
+  let scrollAt = 0;
+  window.addEventListener('scroll', () => { const t = Date.now(); if (t - scrollAt > 2500) { scrollAt = t; liveEvent('scroll', { y: Math.round(window.scrollY) }); } }, { passive: true });
+  document.addEventListener('visibilitychange', () => liveEvent(document.hidden ? 'hidden' : 'visible', {}));
 
   // ── "I wasn't done" (P3): live only while the assistant is speaking ──
   const stopBtn = document.getElementById('livestop');
