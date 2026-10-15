@@ -172,13 +172,17 @@
     const st = (d && d.state) || 'idle';
     if (st === demoShown && !force) return;
     demoShown = st;
+    const btn = (id, label) => `<p style="margin-top:22px"><button id="${id}" class="primarybtn" style="font-size:16px;padding:12px 22px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer">${label}</button></p>`;
     const views = {
-      idle: '<h2>Try something first</h2><p>In a moment the assistant will start thinking. You will hear a soft trill, and the <b>✋ I wasn\'t done</b> button at the top turns amber.</p><p class="hint" style="margin-top:14px">Press it while the trill is playing.</p>',
+      idle: '<h2>Try something first</h2><p>When you press start, the assistant will begin thinking. You will hear a soft trill, and the <b>✋ I wasn\'t done</b> button at the top turns amber.</p><p class="hint" style="margin-top:14px">Press that button while the trill is playing.</p>' + btn('livedemostart', 'Start'),
       thinking: '<h2>It\'s thinking now</h2><p style="font-size:22px">Press <b>✋ I wasn\'t done</b> at the top of the page.</p>',
-      done: '<h2>✓ That\'s it</h2><p>The button lights up whenever the assistant is listening to you or thinking, and stays grey the rest of the time. Press it any time it starts before you have finished, and keep talking.</p>',
-      missed: '<h2>Not this time</h2><p>The trill has stopped. The researcher will run it once more — press <b>✋ I wasn\'t done</b> at the top while the trill plays.</p>',
+      done: '<h2>✓ That\'s it</h2><p>The button lights up whenever the assistant is listening to you or thinking, and stays grey the rest of the time. Press it any time the assistant starts before you have finished, and keep talking.</p>' + btn('livedemonext', 'Continue'),
+      missed: '<h2>Not this time</h2><p>The trill has stopped. Try once more — press <b>✋ I wasn\'t done</b> at the top while the trill plays.</p>' + btn('livedemostart', 'Try again'),
     };
     c.innerHTML = views[st] || views.idle;
+    const start = c.querySelector('#livedemostart'), next = c.querySelector('#livedemonext');
+    if (start) start.onclick = () => { start.disabled = true; start.textContent = 'Listen…'; liveEvent('demo_start', {}); };
+    if (next) next.onclick = () => { next.disabled = true; liveEvent('advance', { from: 'demo' }); };
   }
   function applyWords(words) {
     const w = stageBox.querySelector('.words'); if (!w) return;
