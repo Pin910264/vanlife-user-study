@@ -108,8 +108,13 @@
   notice.innerHTML = '<div class="card"><span>👀</span><div><b>Take a moment to browse your options.</b> When you are ready to start designing, just say so.</div><button class="x" title="hide">×</button></div>';
   notice.querySelector('.x').onclick = () => { notice.style.display = 'none'; liveEvent('notice_closed', {}); };
   const FIELDS = [['who', 'who'], ['where', 'where'], ['when', 'time of year'], ['activity', 'activity']];
+  // what they typed survives a reload of THIS session only: the store is keyed by the
+  // session's participant key, so a new session (new key) starts blank even on a device
+  // that ran an earlier one (10-14: a test came up pre-filled with the previous run)
+  const INTRO_KEY = 'liveintro:' + KEY;
   let intro = {};
-  try { intro = JSON.parse(localStorage.getItem('liveintro') || '{}') || {}; } catch (e) {}
+  try { intro = JSON.parse(localStorage.getItem(INTRO_KEY) || '{}') || {}; } catch (e) {}
+  try { Object.keys(localStorage).filter(k => k.startsWith('liveintro') && k !== INTRO_KEY).forEach(k => localStorage.removeItem(k)); } catch (e) {}
   const sentenceText = v => `I'm going on a one-month trip with ${v.who || '___'} to ${v.where || '___'} in ${v.when || '___'}. During the trip, we'll be ${v.activity || '___'}.`;
   let introTimer = null;
   function sendIntro() {
@@ -126,7 +131,7 @@
       const f = FIELDS.find(x => x[0] === part);
       if (!f) { sen.appendChild(document.createTextNode(part)); continue; }
       const inp = document.createElement('input'); inp.placeholder = f[1]; inp.value = intro[f[0]] || ''; inp.autocomplete = 'off'; inp.spellcheck = false;
-      inp.oninput = () => { intro[f[0]] = inp.value.trim(); fit(inp); try { localStorage.setItem('liveintro', JSON.stringify(intro)); } catch (e) {} sendIntro(); };
+      inp.oninput = () => { intro[f[0]] = inp.value.trim(); fit(inp); try { localStorage.setItem(INTRO_KEY, JSON.stringify(intro)); } catch (e) {} sendIntro(); };
       inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const all = [...sen.querySelectorAll('input')]; const n = all[all.indexOf(inp) + 1]; if (n) n.focus(); else inp.blur(); } };
       fit(inp); sen.appendChild(inp);
     }
