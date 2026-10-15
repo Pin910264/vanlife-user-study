@@ -320,8 +320,10 @@
     document.getElementById('livepn').textContent = floor.length ? `· ${floor.length} on the floor` : '· empty';
   }
 
-  const ALL = Object.values(DATA).flat();
-  const byCode = code => ALL.find(x => x.id === code);
+  // the code the assistant says is the LABEL on the card (K34), not DATA's internal id
+  // (K36, also the picture's file name) — look items up the way the grid shows them
+  const ALL = (typeof LIBRARY_ITEMS !== 'undefined' && typeof libraryItemView === 'function') ? LIBRARY_ITEMS.map(libraryItemView) : Object.values(DATA).flat();
+  const byCode = code => ALL.find(x => x.id === ((typeof MODE_ALIAS !== 'undefined' && MODE_ALIAS[code]) || code));   // B09 (closed queen wall bed) opens the queen wall bed card
   let shownTurn = 0;
   let failures = 0;
   let chosen = new Set();      // codes already in the van — ticked on their cards
