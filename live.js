@@ -17,6 +17,7 @@
   const FEED = (q.get('live') || '').replace(/\/+$/, '');
   const KEY = q.get('key') || '';
   const SAMPLE = q.get('sample') ? '&sample=1' : '';   // testing: stand-in mentions on an empty session
+  const STAGE = q.get('stage') ? '&stage=' + encodeURIComponent(q.get('stage')) : '';   // testing: preview one stage (check / intro / talk / browse)
   if (!FEED || typeof DATA === 'undefined') return;
 
   const css = document.createElement('style');
@@ -363,7 +364,7 @@
 
   async function tick() {
     try {
-      const r = await fetch(`${FEED}/p/state?key=${encodeURIComponent(KEY)}${SAMPLE}`, { cache: 'no-store' });
+      const r = await fetch(`${FEED}/p/state?key=${encodeURIComponent(KEY)}${SAMPLE}${STAGE}`, { cache: 'no-store' });
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
