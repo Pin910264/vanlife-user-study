@@ -154,6 +154,11 @@
     } else if (st === 'intro') {
       stageBox.appendChild(introCard());
       const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
+    } else if (st !== 'talk') {
+      // a stage this copy of the page does not know (older cached script): say so instead of a blank page
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>One moment</h2><p>This page is out of date — reload it (⌘⇧R or pull down to refresh).</p>';
+      stageBox.appendChild(c);
     } else if (st === 'talk') {
       const c = document.createElement('div'); c.className = 'card';
       c.innerHTML = '<h2>Your trip</h2><div class="sentence"></div><p class="hint">Talk it through with the assistant. The furniture opens once you have covered the basics.</p>';
