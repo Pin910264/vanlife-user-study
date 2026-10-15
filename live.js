@@ -51,10 +51,36 @@
   #live .hist{display:none;margin-top:6px;border-top:1px solid #374151;padding-top:6px;max-height:40vh;overflow-y:auto}
   #live.open .hist{display:block}
   #live .hist .sub{font-size:11px;color:#94a3b8;margin:0 0 4px}
-  #live .stopbtn{border:0;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;background:#f59e0b;color:#1f1300;white-space:nowrap}
-  #live .stopbtn:disabled{background:#374151;color:#6b7280;cursor:default}
-  #live .stopbtn.sent{background:#22c55e;color:#052e16}
-  #live .stopbtn:not(:disabled){animation:stoppulse 1.2s ease-in-out infinite}
+  /* status chip (P14): what the assistant is doing right now, beside the ✋ button */
+  /* status chip, upper right of the bar: amber "Thinking…" / blue "Speaking", nothing while it is their turn */
+  #livestwrap{position:relative;display:inline-block;margin-right:6px}
+  #livest{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:4px 12px 4px 8px;font-weight:700;font-size:12px;white-space:nowrap;min-width:118px;cursor:default}
+  #livest.idle{background:#1f2937;color:#9ca3af}#livest.idle .dot{width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block}
+  #livest.thinking{background:#2a1a00;color:#fbbf24}#livest.speaking{background:#0b1f3a;color:#93c5fd}
+  #livemenu{display:none;position:absolute;left:0;top:100%;padding-top:6px;z-index:70}
+  #livemenu .box{background:#111827;border:1px solid #374151;border-radius:10px;padding:8px 10px;box-shadow:0 6px 18px #0005;white-space:nowrap}
+  #livestwrap:hover #livemenu,#livestwrap.open #livemenu{display:block}
+  #livest{cursor:pointer}
+  #livest .bars{display:inline-flex;gap:2px;align-items:flex-end;height:14px}#livest .bars i{width:3px;background:currentColor;border-radius:2px;animation:livebar .8s ease-in-out infinite}
+  #livest .bars i:nth-child(2){animation-delay:.15s}#livest .bars i:nth-child(3){animation-delay:.3s}#livest.speaking .bars i{animation-duration:1.4s}
+  @keyframes livebar{0%,100%{height:4px}50%{height:14px}}
+  #livest .orbit{position:relative;width:14px;height:14px;display:inline-block}#livest .orbit i{position:absolute;width:4px;height:4px;border-radius:50%;background:currentColor;top:5px;left:5px;animation:liveorb 1.2s linear infinite}
+  #livest .orbit i:nth-child(2){animation-delay:.4s}#livest .orbit i:nth-child(3){animation-delay:.8s}
+  @keyframes liveorb{from{transform:rotate(0) translateX(6px)}to{transform:rotate(360deg) translateX(6px)}}
+  /* the floating ✋: fixed bottom-left, one size, space bar too; the sound switch drops down on hover */
+  #livefab{position:fixed;left:16px;bottom:16px;z-index:60}
+  #livefab .stopbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 16px;font-size:15px;border-radius:14px;box-shadow:0 6px 18px #0005;min-width:200px;justify-content:center}
+  #livefab .stopbtn .key{font:600 10px Menlo,Consolas,monospace;border:1px solid currentColor;border-radius:4px;padding:1px 5px;opacity:.6}
+  @media(max-width:720px){#livefab{left:8px;bottom:8px}#livefab .stopbtn{min-width:0;padding:10px 12px;font-size:13px}#livefab .stopbtn .key{display:none}}
+  /* the sound switch: a small toggle, on by default */
+  #livesnd{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:#cbd5e1;font-size:11px;cursor:pointer;white-space:nowrap;padding:0 2px}
+  #livesnd .sw{position:relative;width:30px;height:16px;border-radius:999px;background:#22c55e;transition:background .15s}
+  #livesnd .sw:after{content:"";position:absolute;top:2px;left:16px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s}
+  #livesnd.off .sw{background:#4b5563}#livesnd.off .sw:after{left:2px}#livesnd.off{color:#94a3b8}
+  #live .stopbtn,#livefab .stopbtn{border:0;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;background:#f59e0b;color:#1f1300;white-space:nowrap}
+  #live .stopbtn:disabled,#livefab .stopbtn:disabled{background:#374151;color:#9ca3af;cursor:default}
+  #live .stopbtn.sent,#livefab .stopbtn.sent{background:#22c55e;color:#052e16}
+  #live .stopbtn:not(:disabled),#livefab .stopbtn:not(:disabled){animation:stoppulse 1.2s ease-in-out infinite}
   @keyframes stoppulse{0%,100%{box-shadow:0 0 0 0 #f59e0b66}50%{box-shadow:0 0 0 8px #f59e0b00}}
   /* the floor plan: a corner mini-map; tap to enlarge, tap again to shrink */
   #liveplanbox{position:fixed;right:12px;bottom:12px;z-index:50;width:200px;background:#0b1220;border:1px solid #334155;border-radius:10px;box-shadow:0 4px 16px #0006;cursor:zoom-in;overflow:hidden;transition:width .15s}
@@ -89,11 +115,18 @@
   const strip = document.createElement('div');
   strip.id = 'live';
   strip.innerHTML =
-    '<div class="hd"><span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="keys">← → to flip through them</span><span class="sp"></span>'
+    '<div class="hd"><span id="livestwrap"><span id="livest" class="idle"><span class="dot"></span>Your turn</span>'
+    + '<div id="livemenu"><div class="box"><button id="livesnd" title="The soft trill while the assistant thinks — switch it off if you find it distracting; the short chime at the start and the amber light stay"><span class="sw"></span><span class="lbl">thinking sound on</span></button></div></div></span>'
+    + '<span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="keys">← → to flip through them</span><span class="sp"></span>'
     + '<button class="tg" id="livetg" style="display:none">Earlier ▾</button>'
-    + '<button class="stopbtn" id="livestop" disabled title="Lights up while the assistant is talking — press it to cut in and keep going">✋ I wasn\'t done</button></div>'
+    + '</div>'
     + '<div class="row" id="liverow"><div class="none">Items the assistant names appear here as it says them — tap one to see it.</div></div>'
     + '<div class="hist" id="livehist"></div>';
+  // ✋ floats bottom-left, always the same size (10-15); hovering it shows the sound switch
+  const fab = document.createElement('div');
+  fab.id = 'livefab';
+  fab.innerHTML = '<button class="stopbtn" id="livestop" disabled title="Lights up while the assistant is working — press it, or the space bar, to cut in and keep going"><span class="lbl">✋ I wasn\'t done</span><span class="key">space</span></button>';
+  document.body.appendChild(fab);
   const planbox = document.createElement('div');
   planbox.id = 'liveplanbox';
   planbox.innerHTML = '<div class="pt"><span>Your van from above</span><span id="livepn" class="x"></span><span class="sp"></span><span class="x" id="liveplanhint">tap to enlarge</span></div><svg id="liveplan" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet"></svg>';
@@ -161,6 +194,7 @@
     app.style.display = catalog ? '' : 'none';
     planbox.style.display = catalog ? '' : 'none';
     strip.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';   // the rehearsal needs the button in view
+    fab.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';
     notice.style.display = catalog ? '' : 'none';
     stageBox.style.display = catalog ? 'none' : '';
     stageBox.innerHTML = '';
@@ -194,10 +228,10 @@
     demoShown = st;
     const btn = (id, label) => `<p style="margin-top:22px"><button id="${id}" class="primarybtn" style="font-size:16px;padding:12px 22px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer">${label}</button></p>`;
     const views = {
-      idle: '<h2>Try something first</h2><p>When you press start, the assistant will begin thinking. You will hear a soft trill, and the <b>✋ I wasn\'t done</b> button at the top turns amber.</p><p class="hint" style="margin-top:14px">Press that button while the trill is playing.</p>' + btn('livedemostart', 'Start'),
-      thinking: '<h2>It\'s thinking now</h2><p style="font-size:22px">Press <b>✋ I wasn\'t done</b> at the top of the page.</p>',
+      idle: '<h2>Try something first</h2><p>When you press start, the assistant will begin thinking: the status at the top left says <b>Thinking…</b>, you hear a soft trill, and the <b>✋ I wasn\'t done</b> button at the bottom left turns amber.</p><p class="hint" style="margin-top:14px">Press that button, or the space bar, while it is thinking. Hover over the status for a switch that turns the trill off.</p>' + btn('livedemostart', 'Start'),
+      thinking: '<h2>It\'s thinking now</h2><p style="font-size:22px">Press <b>✋ I wasn\'t done</b> at the bottom left, or the space bar.</p>',
       done: '<h2>✓ That\'s it</h2><p>The button lights up whenever the assistant is listening to you or thinking, and stays grey the rest of the time. Press it any time the assistant starts before you have finished, and keep talking.</p>' + btn('livedemonext', 'Continue'),
-      missed: '<h2>Not this time</h2><p>The trill has stopped. Try once more — press <b>✋ I wasn\'t done</b> at the top while the trill plays.</p>' + btn('livedemostart', 'Try again'),
+      missed: '<h2>Not this time</h2><p>The trill has stopped. Try once more — press <b>✋ I wasn\'t done</b> at the bottom left, or the space bar, while it is thinking.</p>' + btn('livedemostart', 'Try again'),
     };
     c.innerHTML = views[st] || views.idle;
     const start = c.querySelector('#livedemostart'), next = c.querySelector('#livedemonext');
@@ -270,15 +304,46 @@
   const stopBtn = document.getElementById('livestop');
   stopBtn.title = 'Lights up as soon as the assistant starts working on what you said — press it to keep going';
   stopBtn.onclick = async () => {
-    stopBtn.disabled = true; stopBtn.textContent = '✋ …';
+    stopBtn.disabled = true; stopBtn.querySelector('.lbl').textContent = '✋ …';
+    holdIdleUntil = Date.now() + 2500; setState('idle');
     liveEvent('interrupt', {});
     try {
       const r = await fetch(`${FEED}/p/interrupt?key=${encodeURIComponent(KEY)}`, { method: 'POST', body: '{}' });
       const j = await r.json();
-      stopBtn.classList.add('sent'); stopBtn.textContent = j.accepted ? '✓ go ahead' : '✋ I wasn\'t done';
-    } catch (e) { stopBtn.textContent = '✋ I wasn\'t done'; }
-    setTimeout(() => { stopBtn.classList.remove('sent'); stopBtn.textContent = '✋ I wasn\'t done'; }, 2500);
+      stopBtn.classList.add('sent'); stopBtn.querySelector('.lbl').textContent = j.accepted ? '✓ go ahead' : '✋ I wasn\'t done';
+    } catch (e) { stopBtn.querySelector('.lbl').textContent = '✋ I wasn\'t done'; }
+    setTimeout(() => { stopBtn.classList.remove('sent'); stopBtn.querySelector('.lbl').textContent = '✋ I wasn\'t done'; }, 2500);
   };
+  // the status chip (P14) and the participant's sound switch
+  // the status chip (upper right): amber "Thinking…" / blue "Speaking"; hidden while it is their turn
+  const stEl = document.getElementById('livest');
+  const ST = { idle: ['idle', '<span class="dot"></span>Your turn'], listening: ['idle', '<span class="dot"></span>Your turn'],
+               thinking: ['thinking', '<span class="orbit"><i></i><i></i><i></i></span>Thinking…'], speaking: ['speaking', '<span class="bars"><i></i><i></i><i></i></span>Speaking'] };
+  let shownState = '', holdIdleUntil = 0;
+  function setState(st) {
+    if (Date.now() < holdIdleUntil && st !== 'idle' && st !== 'listening') st = 'idle';   // just cut in: their turn, whatever the last poll said
+    const v = ST[st] || ST.idle;
+    if (v[0] === shownState) return;
+    shownState = v[0]; stEl.className = v[0]; stEl.innerHTML = v[1];
+  }
+  const stWrap = document.getElementById('livestwrap');
+  stEl.onclick = () => stWrap.classList.toggle('open');                       // a click pins the switch open
+  document.addEventListener('click', e => { if (!stWrap.contains(e.target)) stWrap.classList.remove('open'); });
+  // the space bar presses ✋ (not while typing)
+  document.addEventListener('keydown', e => {
+    if (e.key !== ' ' && e.code !== 'Space') return;
+    const t = e.target, tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || (t && t.isContentEditable)) return;
+    e.preventDefault();
+    if (!stopBtn.disabled) stopBtn.click();
+  });
+  const sndBtn = document.getElementById('livesnd');
+  let soundOn = true;
+  try { soundOn = localStorage.getItem('livesound:' + KEY) !== 'off'; } catch (e) {}
+  function showSound() { sndBtn.classList.toggle('off', !soundOn); sndBtn.querySelector('.lbl').textContent = soundOn ? 'thinking sound on' : 'thinking sound off'; sndBtn.setAttribute('aria-checked', String(soundOn)); sndBtn.setAttribute('role', 'switch'); }
+  sndBtn.onclick = () => { soundOn = !soundOn; try { localStorage.setItem('livesound:' + KEY, soundOn ? 'on' : 'off'); } catch (e) {} showSound(); liveEvent('sound', { on: soundOn }); };
+  showSound();
+  if (!soundOn) liveEvent('sound', { on: false });          // a reload keeps their choice on the wizard too
   function setSpeaking(on) {
     if (on && stopBtn.classList.contains('sent')) return;   // just pressed: stay off until the next reply
     stopBtn.disabled = !on;
@@ -430,6 +495,7 @@
       if (s.van && s.floor) drawPlan(s.floor, s.van, chosen);
       window.liveSpeaking = !!s.speaking;
       setSpeaking(!!s.speaking);
+      setState(s.state || (s.speaking ? 'thinking' : 'idle'));
     } catch (e) {
       if (++failures >= 3) {
         document.getElementById('livedot').className = 'dot';
