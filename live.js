@@ -64,6 +64,25 @@
   #liveplanbox svg{display:block;width:100%;height:auto}
   #liveplanbox.big .pt{font-size:13px;padding:8px 12px 4px}
   @media(max-width:720px){#live{padding:6px 8px}#liveplanbox{width:150px;right:8px;bottom:8px}}`;
+  css.textContent += `
+  /* participant flow (10-14): link check → trip sentence → talking → browsing */
+  #livestage{max-width:760px;margin:40px auto;padding:0 16px;font-family:Inter,ui-sans-serif,-apple-system,sans-serif;color:#111827}
+  #livestage .card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:34px 36px;box-shadow:0 2px 12px #0000000a}
+  #livestage h2{margin:0 0 14px;font-size:26px;letter-spacing:-.02em}
+  #livestage p{font-size:17px;line-height:1.6;color:#475467;margin:0}
+  #livestage .words{display:flex;gap:18px;flex-wrap:wrap;margin:22px 0 26px}
+  #livestage .words span{font:800 38px/1 Inter,ui-sans-serif,-apple-system,sans-serif;letter-spacing:-.02em;background:#f3f4f6;border-radius:14px;padding:18px 24px}
+  #livestage .sentence{font-size:24px;line-height:1.9;margin:20px 0 22px;color:#111827}
+  #livestage .sentence input{font:inherit;color:#1d4ed8;border:0;border-bottom:2px solid #93c5fd;background:#eff6ff;border-radius:6px 6px 0 0;padding:0 8px;min-width:4ch;outline:none}
+  #livestage .sentence input:focus{border-bottom-color:#1d4ed8;background:#dbeafe}
+  #livestage .sentence input::placeholder{color:#94a3b8;font-style:italic}
+  #livestage .sentence b{color:#1d4ed8;font-weight:600}
+  #livestage .hint{font-size:15px;color:#6b7280}
+  #livenotice{max-width:1180px;margin:18px auto 0;padding:0 24px}
+  #livenotice .card{background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;display:flex;gap:14px;align-items:center;font-size:16px;color:#78350f}
+  #livenotice .card b{font-weight:800}
+  #livenotice .x{margin-left:auto;border:0;background:transparent;font-size:20px;cursor:pointer;color:#92400e}
+  @media(max-width:640px){#livestage .card{padding:24px 20px}#livestage .words span{font-size:28px;padding:14px 18px}#livestage .sentence{font-size:20px}}`;
   document.head.appendChild(css);
 
   const strip = document.createElement('div');
@@ -78,6 +97,80 @@
   planbox.id = 'liveplanbox';
   planbox.innerHTML = '<div class="pt"><span>Your van from above</span><span id="livepn" class="x"></span><span class="sp"></span><span class="x" id="liveplanhint">tap to enlarge</span></div><svg id="liveplan" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet"></svg>';
   document.body.appendChild(planbox);
+
+  // ── the flow: what the page shows is decided by the wizard (s.stage) ──
+  const app = document.getElementById('app');
+  const stageBox = document.createElement('div'); stageBox.id = 'livestage'; stageBox.style.display = 'none';
+  app.parentNode.insertBefore(stageBox, app);
+  const notice = document.createElement('div'); notice.id = 'livenotice'; notice.style.display = 'none';
+  app.parentNode.insertBefore(notice, app);
+  notice.innerHTML = '<div class="card"><span>👀</span><div><b>Take a moment to browse your options.</b> When you are ready to start designing, just say so.</div><button class="x" title="hide">×</button></div>';
+  notice.querySelector('.x').onclick = () => { notice.style.display = 'none'; liveEvent('notice_closed', {}); };
+  const FIELDS = [['who', 'who'], ['where', 'where'], ['when', 'time of year'], ['activity', 'activity']];
+  let intro = {};
+  try { intro = JSON.parse(localStorage.getItem('liveintro') || '{}') || {}; } catch (e) {}
+  const sentenceText = v => `I'm going on a one-month trip with ${v.who || '___'} to ${v.where || '___'} in ${v.when || '___'}. During the trip, we'll be ${v.activity || '___'}.`;
+  let introTimer = null;
+  function sendIntro() {
+    clearTimeout(introTimer);
+    introTimer = setTimeout(() => liveEvent('intro', { ...intro, text: sentenceText(intro) }), 700);
+  }
+  function fit(inp) { inp.style.width = Math.max((inp.value || inp.placeholder).length + 3, 5) + 'ch'; }   // 'ch' is narrower than most letters in Inter
+  function introCard() {
+    const c = document.createElement('div'); c.className = 'card';
+    c.innerHTML = '<h2>Your trip</h2><div class="sentence"></div><p class="hint">Take a minute to fill this in. When you are ready to start designing, read it aloud to the assistant.</p>';
+    const sen = c.querySelector('.sentence');
+    const parts = ["I'm going on a one-month trip with ", 'who', ' to ', 'where', ' in ', 'when', '. During the trip, we\'ll be ', 'activity', '.'];
+    for (const part of parts) {
+      const f = FIELDS.find(x => x[0] === part);
+      if (!f) { sen.appendChild(document.createTextNode(part)); continue; }
+      const inp = document.createElement('input'); inp.placeholder = f[1]; inp.value = intro[f[0]] || ''; inp.autocomplete = 'off'; inp.spellcheck = false;
+      inp.oninput = () => { intro[f[0]] = inp.value.trim(); fit(inp); try { localStorage.setItem('liveintro', JSON.stringify(intro)); } catch (e) {} sendIntro(); };
+      inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const all = [...sen.querySelectorAll('input')]; const n = all[all.indexOf(inp) + 1]; if (n) n.focus(); else inp.blur(); } };
+      fit(inp); sen.appendChild(inp);
+    }
+    return c;
+  }
+  let shownStage = '';
+  function applyStage(st) {
+    if (!st || st === shownStage) return;
+    shownStage = st;
+    liveEvent('stage_shown', { stage: st });
+    const catalog = st === 'browse';
+    app.style.display = catalog ? '' : 'none';
+    planbox.style.display = catalog ? '' : 'none';
+    strip.style.display = (st === 'talk' || catalog) ? '' : 'none';
+    notice.style.display = catalog ? '' : 'none';
+    stageBox.style.display = catalog ? 'none' : '';
+    stageBox.innerHTML = '';
+    if (st === 'check') {
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Before we start</h2><p>Please read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
+      stageBox.appendChild(c);
+    } else if (st === 'intro') {
+      stageBox.appendChild(introCard());
+      const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
+    } else if (st === 'talk') {
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Your trip</h2><div class="sentence"></div><p class="hint">Talk it through with the assistant. The furniture opens once you have covered the basics.</p>';
+      stageBox.appendChild(c);
+    }
+    if (catalog) window.scrollTo(0, 0);
+  }
+  function applyWords(words) {
+    const w = stageBox.querySelector('.words'); if (!w) return;
+    const txt = (words || []).join(' ');
+    if (w.dataset.txt === txt) return;
+    w.dataset.txt = txt; w.innerHTML = '';
+    for (const word of words || []) { const sp = document.createElement('span'); sp.textContent = word; w.appendChild(sp); }
+  }
+  function applyTalkSentence(serverIntro) {
+    const sen = stageBox.querySelector('.sentence'); if (!sen || shownStage !== 'talk') return;
+    const v = (serverIntro && serverIntro.text) ? serverIntro : intro;
+    sen.innerHTML = '';
+    const parts = ["I'm going on a one-month trip with ", v.who || '___', ' to ', v.where || '___', ' in ', v.when || '___', '. During the trip, we\'ll be ', v.activity || '___', '.'];
+    parts.forEach((t, i) => { if (i % 2) { const b = document.createElement('b'); b.textContent = t; sen.appendChild(b); } else sen.appendChild(document.createTextNode(t)); });
+  }
   function setPlanBig(big) {
     if (planbox.classList.contains('big') === big) return;
     planbox.classList.toggle('big', big);
@@ -274,6 +367,7 @@
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
+      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro);
       const ck = (s.chosen || []).join(',');
       const chosenChanged = ck !== chosenKey;
       if (chosenChanged) { chosen = new Set(s.chosen || []); chosenKey = ck; }
