@@ -105,6 +105,11 @@
   #livestage .sentence input::placeholder{color:#94a3b8;font-style:italic}
   #livestage .sentence b{color:#1d4ed8;font-weight:600}
   #livestage .hint{font-size:15px;color:#6b7280}
+  #livestage.wide{max-width:none;margin:0;padding:0}
+  #livestage .survey .frame{background:#fff}
+  #livestage iframe{display:block;width:100%;height:calc(100vh - 44px);border:0}
+  #livestage .sfoot{height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;font-size:13px;color:#6b7280;background:#f5f6f8;border-top:1px solid #e5e7eb}
+  #livestage .mini{font-size:13px;padding:5px 12px;border-radius:8px;border:1px solid #cfd4dc;background:#fff;cursor:pointer}
   /* rehearsal card replicas (P21) */
   #livestage .row{display:flex;gap:18px;align-items:center;margin:16px 0}#livestage .row p{margin:0;flex:1}
   #livestage .demo{display:flex;align-items:center;gap:8px;flex:0 0 auto;background:#111827;border-radius:12px;padding:10px 12px}
@@ -218,14 +223,27 @@
     shownStage = st;
     liveEvent('stage_shown', { stage: st });
     const catalog = st === 'browse';
+    const survey = st === 'consent' || st === 'questionnaire' || st === 'debrief';
     app.style.display = catalog ? '' : 'none';
     planbox.style.display = catalog ? '' : 'none';
     strip.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';   // the rehearsal needs the button in view
     fab.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';
     notice.style.display = catalog ? '' : 'none';
     stageBox.style.display = catalog ? 'none' : '';
+    stageBox.classList.toggle('wide', survey);
     stageBox.innerHTML = '';
     if (st !== 'demo') endTour();
+    const siteHeader = document.querySelector('header');
+    if (siteHeader) siteHeader.style.display = survey ? 'none' : '';     // the form gets the whole page (10-19)
+    if (survey) {
+      const titles = { consent: 'Consent form', questionnaire: 'Questionnaire', debrief: 'Debrief' };
+      const c = document.createElement('div'); c.className = 'survey';
+      c.innerHTML = `<div class="frame"><iframe id="livesurvey" title="${titles[st]}"></iframe></div>`
+        + `<div class="sfoot"><span>${titles[st]} · this page moves on by itself when the form is done</span><button id="livesurveydone" class="mini">Done</button></div>`;
+      stageBox.appendChild(c);
+      c.querySelector('#livesurveydone').onclick = () => liveEvent('advance', { from: st });
+      surveyShown = '';
+    }
     if (st === 'check') {
       const c = document.createElement('div'); c.className = 'card';
       c.innerHTML = '<h2>Before we start</h2><p>Please read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
@@ -317,6 +335,16 @@
     if (start) start.onclick = () => { start.disabled = true; start.textContent = 'Listen…'; liveEvent('demo_start', {}); };
     if (next) next.onclick = () => { next.disabled = true; liveEvent('advance', { from: 'demo' }); };
   }
+  let surveyShown = '';
+  function applySurvey(url) {
+    const f = document.getElementById('livesurvey'); if (!f || !url || url === surveyShown) return;
+    surveyShown = url; f.src = url;
+  }
+  // Qualtrics' end-of-survey redirect points at survey_done.html, which tells this page the form is finished
+  window.addEventListener('message', e => {
+    const d = e.data || {};
+    if (d.vanlife === 'survey_done' && (shownStage === 'consent' || shownStage === 'questionnaire' || shownStage === 'debrief')) liveEvent('advance', { from: shownStage });
+  });
   function applyWords(words) {
     const w = stageBox.querySelector('.words'); if (!w) return;
     const txt = (words || []).join(' ');
@@ -564,7 +592,7 @@
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
-      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDemo(s.demo);
+      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDemo(s.demo); applySurvey(s.survey);
       const ck = (s.chosen || []).join(',');
       const chosenChanged = ck !== chosenKey;
       if (chosenChanged) { chosen = new Set(s.chosen || []); chosenKey = ck; }
