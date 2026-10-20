@@ -82,9 +82,13 @@
   #live .stopbtn.sent,#livefab .stopbtn.sent{background:#22c55e;color:#052e16}
   #live .stopbtn:not(:disabled),#livefab .stopbtn:not(:disabled){animation:stoppulse 1.2s ease-in-out infinite}
   @keyframes stoppulse{0%,100%{box-shadow:0 0 0 0 #f59e0b66}50%{box-shadow:0 0 0 8px #f59e0b00}}
-  /* the floor plan: a corner mini-map; tap to enlarge, tap again to shrink */
+  /* A small overview; enlarge to point, explicit button to minimize. */
   #liveplanbox{position:fixed;right:12px;bottom:12px;z-index:50;width:200px;background:#0b1220;border:1px solid #334155;border-radius:10px;box-shadow:0 4px 16px #0006;cursor:zoom-in;overflow:hidden;transition:width .15s}
-  #liveplanbox.big{width:min(92vw,900px);cursor:zoom-out}
+  #liveplanbox.big{width:min(92vw,900px);max-height:calc(100dvh - 24px);overflow:auto;cursor:default}
+  #liveplanbox button{font:inherit;color:#e2e8f0;background:#1e293b;border:1px solid #64748b;border-radius:6px;padding:5px 9px;cursor:pointer}
+  #liveplanbox button:disabled{opacity:.45;cursor:default}
+  #liveplanbox button:focus-visible{outline:2px solid #fbbf24;outline-offset:2px}
+  #liveplanbox.big svg{max-height:calc(100dvh - 200px)}
   #liveplanbox .pt{display:flex;align-items:center;gap:6px;font:600 11px -apple-system,Helvetica,sans-serif;color:#cbd5e1;padding:5px 8px 2px}
   #liveplanbox .pt .sp{flex:1}
   #liveplanbox .pt .x{color:#94a3b8;font-size:11px}
@@ -156,8 +160,84 @@
   document.body.appendChild(fab);
   const planbox = document.createElement('div');
   planbox.id = 'liveplanbox';
-  planbox.innerHTML = '<div class="pt"><span>Your van from above</span><span id="livepn" class="x"></span><span class="sp"></span><span class="x" id="liveplanhint">tap to enlarge</span></div><svg id="liveplan" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet"></svg>';
+  planbox.innerHTML = '<div class="pt"><span>Your van from above</span><span id="livepn" class="x"></span><span class="sp"></span><button type="button" class="x" id="liveplanhint">Enlarge</button></div><svg id="liveplan" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet"></svg>';
   document.body.appendChild(planbox);
+  const placementTools = document.createElement('div');
+  placementTools.style.cssText = 'padding:8px 12px;color:#cbd5e1;font-size:12px;display:none';
+  placementTools.innerHTML = '<div>Click a spot, then tell the assistant what goes there.</div><div id="placementstatus" role="status" aria-live="polite"></div><button type="button" id="placementclear">Clear location</button> <button type="button" id="placementretry" hidden>Retry</button><div style="margin-top:4px">Changes made while the assistant is thinking apply to the next turn.</div>';
+  planbox.appendChild(placementTools);
+  const planSvg = document.getElementById('liveplan');
+  let planGeometry = null, placementState = {revision: 0, marker: null};
+  let placementBusy = false, placementRequest = null, placementError = '';
+
+  function renderPlacement() {
+    const old = document.getElementById('placementpin'); if (old) old.remove();
+    const draft = placementRequest && !placementRequest.clear ? placementRequest : null;
+    const m = draft || (placementRequest && placementRequest.clear ? null : placementState.marker);
+    if (m && planGeometry) {
+      const {MX, T, MY, sz, sx, Z0, X0} = planGeometry;
+      const px = MX + (m.z - Z0) * sz, py = T + MY + (m.x - X0) * sx;
+      const color = draft ? '#fbbf24' : m.status === 'previous' ? '#94a3b8' : '#f59e0b';
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.id = 'placementpin'; g.style.pointerEvents = 'none';
+      g.innerHTML = `<circle cx="${px}" cy="${py}" r="10" fill="${color}" stroke="white" stroke-width="3"/><path d="M ${px-16} ${py} h 32 M ${px} ${py-16} v 32" stroke="${color}" stroke-width="2"/>`;
+      planSvg.appendChild(g);
+    }
+    const status = placementError || (placementBusy ? 'Sending…' : m ? ({pending:'Received — suggested spot for your next turn.', in_turn:'Included in the current turn.', previous:'Previous suggestion — click again for a new turn.'}[m.status] || '') : 'No location selected.');
+    document.getElementById('placementstatus').textContent = status;
+    document.getElementById('placementclear').disabled = placementBusy || (!m && !placementRequest);
+    document.getElementById('placementretry').hidden = !placementError || !placementRequest;
+  }
+  function applyPlacement(value) {
+    if (!value || value.revision < placementState.revision) return;
+    placementState = value;
+    // A poll can recover an acknowledgement lost in transit.
+    if (!placementBusy && placementRequest && value.marker && value.marker.id === placementRequest.id) {
+      placementRequest = null; placementError = '';
+    }
+    renderPlacement();
+  }
+  async function sendPlacement() {
+    if (placementBusy || !placementRequest) return;
+    placementBusy = true; placementError = ''; renderPlacement();
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const r = await fetch(`${FEED}/p/placement?key=${encodeURIComponent(KEY)}`, {
+        method:'POST', body:JSON.stringify(placementRequest), signal:controller.signal
+      });
+      const result = await r.json();
+      if (result.placement) placementState = result.placement;
+      if (!r.ok) {
+        placementRequest = null;
+        throw new Error(result.error || 'Please select the spot again.');
+      }
+      placementRequest = null;
+    } catch (e) {
+      placementError = placementRequest ? 'Delivery unconfirmed — retry or clear before continuing.' : e.message;
+    } finally {
+      clearTimeout(timeout); placementBusy = false; renderPlacement();
+    }
+  }
+  function selectPlacement(point) {
+    if (placementBusy) return;
+    placementRequest = {id: crypto.randomUUID(), revision: placementState.revision, ...point};
+    sendPlacement();
+  }
+  document.getElementById('placementclear').onclick = e => { e.stopPropagation(); selectPlacement({clear:true}); };
+  document.getElementById('placementretry').onclick = e => { e.stopPropagation(); sendPlacement(); };
+  placementTools.onclick = e => e.stopPropagation();
+  placementTools.onkeydown = e => e.stopPropagation();
+  planSvg.onclick = e => {
+    e.stopPropagation();
+    if (!planbox.classList.contains('big')) { setPlanBig(true); return; }
+    if (!planGeometry || placementBusy) return;
+    const matrix = planSvg.getScreenCTM(); if (!matrix) return;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse());
+    const {MX, T, MY, sz, sx, Z0, Z1, X0, X1} = planGeometry;
+    const x = X0 + (p.y - T - MY) / sx, z = Z0 + (p.x - MX) / sz;
+    if (x < X0 || x > X1 || z < Z0 || z > Z1) return;
+    selectPlacement({x, z});
+  };
 
   // ── the flow: what the page shows is decided by the wizard (s.stage) ──
   const app = document.getElementById('app');
@@ -334,10 +414,14 @@
   function setPlanBig(big) {
     if (planbox.classList.contains('big') === big) return;
     planbox.classList.toggle('big', big);
-    document.getElementById('liveplanhint').textContent = big ? 'tap to shrink' : 'tap to enlarge';
+    document.getElementById('liveplanhint').textContent = big ? 'Minimize' : 'Enlarge';
+    placementTools.style.display = big ? 'block' : 'none';
+    planSvg.style.cursor = big ? 'crosshair' : 'zoom-in';
     liveEvent('plan_toggle', { big });
   }
-  planbox.onclick = (e) => { e.stopPropagation(); setPlanBig(!planbox.classList.contains('big')); };
+  planbox.onclick = e => { e.stopPropagation(); if (!planbox.classList.contains('big')) setPlanBig(true); };
+  document.getElementById('liveplanhint').onclick = e => { e.stopPropagation(); setPlanBig(!planbox.classList.contains('big')); };
+  document.getElementById('liveplanhint').onkeydown = e => e.stopPropagation();
   document.addEventListener('click', () => setPlanBig(false));        // tap anywhere else closes it
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setPlanBig(false); });
   const header = document.querySelector('header') || document.querySelector('.nav');
@@ -431,13 +515,14 @@
   // ── top-down plan (P5): the pieces on the floor, from the wizard's scene feed ──
   let planKey = '';
   function drawPlan(floor, van, chosenSet) {
-    const key = JSON.stringify(floor) + '|' + [...chosenSet].join(',');
+    const key = JSON.stringify([floor, van]) + '|' + [...chosenSet].join(',');
     if (key === planKey) return;
     planKey = key;
     const W = 1000, H = 560, MX = 90, T = 10;
     const Z0 = van.z[0], Z1 = van.z[1], X0 = van.x[0], X1 = van.x[1];
     const sz = (W - 2 * MX) / (Z1 - Z0), sx = sz;                 // true proportions
     const vh = (X1 - X0) * sx, MY = (H - T - vh) / 2;
+    planGeometry = {MX, T, MY, sz, sx, Z0, Z1, X0, X1};
     const PX = z => MX + (z - Z0) * sz, PY = x => T + MY + (x - X0) * sx;
     const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const pal = ['#cfe3ff', '#ffe2b8', '#d6f5d6', '#f6d6f0', '#fff3b0', '#d9d9f3', '#ffd6d6', '#c9f0f0'];
@@ -461,6 +546,7 @@
     });
     if (!floor.length) g += `<text x="${W / 2}" y="${PY(X0) + vh / 2}" text-anchor="middle" font-size="14" fill="#64748b">nothing on the floor yet</text>`;
     document.getElementById('liveplan').innerHTML = g;
+    renderPlacement();
     document.getElementById('livepn').textContent = floor.length ? `· ${floor.length} on the floor` : '· empty';
   }
 
@@ -572,6 +658,7 @@
       document.getElementById('livenote').textContent = (s.mentions || []).some(m => m.items && m.items.length) ? 'latest reply' : 'waiting for the first suggestion';
       render(s.mentions || [], chosenChanged);
       if (s.van && s.floor) drawPlan(s.floor, s.van, chosen);
+      applyPlacement(s.placement);
       window.liveSpeaking = !!s.speaking;
       setSpeaking(!!s.speaking);
       setState(s.state || (s.speaking ? 'thinking' : 'idle'));
