@@ -69,6 +69,10 @@
   @keyframes liveorb{from{transform:rotate(0) translateX(6px)}to{transform:rotate(360deg) translateX(6px)}}
   /* the floating ✋: fixed bottom-left, one size, space bar too; the sound switch drops down on hover */
   #livefab{position:fixed;left:16px;bottom:16px;z-index:60}
+  #livenotebox{display:none;position:fixed;left:16px;bottom:72px;z-index:59;width:300px;background:#0b1220;border:1px solid #334155;border-radius:10px;padding:10px 12px;box-shadow:0 4px 16px #0006;color:#e2e8f0;font:12px/1.4 Inter,system-ui,sans-serif}
+  #livenotebox .nh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;display:flex;gap:8px}#livenotebox .nh span{flex:1}#livenotebox .nh em{font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;color:#4ade80}
+  #livenotebox textarea{width:100%;box-sizing:border-box;margin-top:6px;height:58px;resize:vertical;font:inherit;color:#e2e8f0;background:#111a2e;border:1px solid #334155;border-radius:8px;padding:6px 8px}
+  #livenotebox .nf{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:11px;color:#94a3b8}#livenotebox .nf span{flex:1}#livenotebox button{font:inherit;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;cursor:pointer}
   #livefab .stopbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 16px;font-size:15px;border-radius:14px;box-shadow:0 6px 18px #0005;min-width:200px;justify-content:center}
   #livefab .stopbtn .key{font:600 10px Menlo,Consolas,monospace;border:1px solid currentColor;border-radius:4px;padding:1px 5px;opacity:.6}
   @media(max-width:720px){#livefab{left:8px;bottom:8px}#livefab .stopbtn{min-width:0;padding:10px 12px;font-size:13px}#livefab .stopbtn .key{display:none}}
@@ -672,6 +676,29 @@
     shownTurn = latest.turn;
   }
 
+  // dev notes (10-29): when the feed has a DEV_NOTES file (the quad demo), a box to write
+  // what to change about this page; it is filed on the feed with the turn and what the page shows
+  let noteBox = null;
+  function showNoteBox() {
+    if (noteBox) return;
+    noteBox = document.createElement('aside'); noteBox.id = 'livenotebox';
+    noteBox.innerHTML = '<div class="nh"><span>Dev note · participant page</span><em id="livenoteok"></em></div>'
+      + '<textarea id="livenotetx" placeholder="what to change here — ⌘↩ saves · 3: files it under turn 3"></textarea>'
+      + '<div class="nf"><span>filed with the turn and what this page shows</span><button type="button" id="livenotebt">Save</button></div>';
+    document.body.appendChild(noteBox); noteBox.style.display = 'block';
+    const tx = noteBox.querySelector('#livenotetx'), ok = noteBox.querySelector('#livenoteok');
+    async function save() {
+      const t = tx.value.trim(); if (!t) return;
+      try {
+        const r = await fetch(`${FEED}/notes?key=${encodeURIComponent(KEY)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ surface: 'p', text: t }) });
+        const j = await r.json(); if (!j.ok) throw new Error(j.error || r.status);
+        tx.value = ''; ok.textContent = 'saved · turn ' + j.turn; setTimeout(() => { ok.textContent = ''; }, 2500);
+      } catch (e) { ok.textContent = 'not saved: ' + e.message; }
+    }
+    noteBox.querySelector('#livenotebt').onclick = save;
+    tx.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });
+  }
+
   async function tick() {
     try {
       const r = await fetch(`${FEED}/p/state?key=${encodeURIComponent(KEY)}${SAMPLE}${STAGE}`, { cache: 'no-store' });
@@ -690,6 +717,7 @@
       window.liveSpeaking = !!s.speaking;
       setSpeaking(!!s.speaking);
       setState(s.state || (s.speaking ? 'thinking' : 'idle'));
+      if (s.dev_notes) showNoteBox();
     } catch (e) {
       if (++failures >= 3) {
         document.getElementById('livedot').className = 'dot';
