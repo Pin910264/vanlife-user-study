@@ -340,6 +340,11 @@
     } else if (st === 'intro') {
       stageBox.appendChild(introCard());
       const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
+    } else if (st === 'interview') {
+      // P29 (10-30): the researcher talks with them — a quiet page, nothing to do on it
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Thank you</h2><p>The researcher will talk with you now.</p>';
+      stageBox.appendChild(c);
     } else if (!survey && st !== 'talk') {
       // a stage this copy of the page does not know (older cached script): say so instead of a blank page
       // (10-30, P23: a form stage is known — it used to land here too and say "out of date" under every form)
