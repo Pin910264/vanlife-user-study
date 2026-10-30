@@ -322,8 +322,9 @@
     if (survey) {
       const titles = { consent: 'Consent form', questionnaire: 'Questionnaire', debrief: 'Debrief' };
       const c = document.createElement('div'); c.className = 'survey';
+      // no Done button (10-30, P24): the form's end-of-survey redirect moves the page on; a stalled form is moved on from the console
       c.innerHTML = `<div class="frame"><iframe id="livesurvey" title="${titles[st]}"></iframe></div>`
-        + `<div class="sfoot"><span>${titles[st]} · this page moves on by itself when the form is done</span></div>`;
+        + `<div class="sfoot"><span id="livesurveynote">${titles[st]} · the form appears here when the researcher shares it</span></div>`;
       stageBox.appendChild(c);
       surveyShown = '';
     }
@@ -339,8 +340,9 @@
     } else if (st === 'intro') {
       stageBox.appendChild(introCard());
       const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
-    } else if (st !== 'talk') {
+    } else if (!survey && st !== 'talk') {
       // a stage this copy of the page does not know (older cached script): say so instead of a blank page
+      // (10-30, P23: a form stage is known — it used to land here too and say "out of date" under every form)
       const c = document.createElement('div'); c.className = 'card';
       c.innerHTML = '<h2>One moment</h2><p>This page is out of date — reload it (⌘⇧R or pull down to refresh).</p>';
       stageBox.appendChild(c);
@@ -422,6 +424,7 @@
   function applySurvey(url) {
     const f = document.getElementById('livesurvey'); if (!f || !url || url === surveyShown) return;
     surveyShown = url; f.src = url;
+    const n = document.getElementById('livesurveynote'); if (n) n.textContent = n.textContent.split(' · ')[0] + ' · this page moves on by itself when the form is done';
   }
   // Qualtrics' end-of-survey redirect points at survey_done.html, which tells this page the form is finished
   window.addEventListener('message', e => {
