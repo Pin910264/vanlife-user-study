@@ -19,6 +19,11 @@
   const SAMPLE = q.get('sample') ? '&sample=1' : '';   // testing: stand-in mentions on an empty session
   const STAGE = q.get('stage') ? '&stage=' + encodeURIComponent(q.get('stage')) : '';   // testing: preview one stage (check / intro / talk / browse)
   if (!FEED || typeof DATA === 'undefined') return;
+  // a script error on the participant's machine is otherwise invisible to the operators (10-30): report it to the feed
+  window.addEventListener('error', (e) => {
+    try { fetch(`${FEED}/p/event?key=${encodeURIComponent(KEY)}`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'js_error', data: { message: String(e.message), source: String(e.filename || ''), line: e.lineno || 0, col: e.colno || 0 } }) }); } catch (_) {}
+  });
 
   const css = document.createElement('style');
   css.textContent = `
@@ -118,29 +123,17 @@
   #livestage iframe{display:block;width:100%;height:calc(100vh - 44px);border:0}
   #livestage .sfoot{height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;font-size:13px;color:#6b7280;background:#f5f6f8;border-top:1px solid #e5e7eb}
   #livestage .mini{font-size:13px;padding:5px 12px;border-radius:8px;border:1px solid #cfd4dc;background:#fff;cursor:pointer}
-  /* rehearsal card replicas (P21) */
-  #livestage .row{display:flex;gap:18px;align-items:center;margin:16px 0}#livestage .row p{margin:0;flex:1}
-  #livestage .demo{display:flex;align-items:center;gap:8px;flex:0 0 auto;background:#111827;border-radius:12px;padding:10px 12px}
-  #livestage .arrow{color:#6b7280;font-size:14px}
-  #livestage .rchip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 8px;font-weight:700;font-size:12px;white-space:nowrap}
-  #livestage .rchip.idle{background:#1f2937;color:#9ca3af}#livestage .rchip.idle .dot{width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block}
-  #livestage .rchip.thinking{background:#2a1a00;color:#fbbf24}#livestage .rchip.speaking{background:#0b1f3a;color:#93c5fd}
-  #livestage .rchip .bars{display:inline-flex;gap:2px;align-items:flex-end;height:14px}#livestage .rchip .bars i{width:3px;background:currentColor;border-radius:2px;animation:livebar .8s ease-in-out infinite}
-  #livestage .rchip .bars i:nth-child(2){animation-delay:.15s}#livestage .rchip .bars i:nth-child(3){animation-delay:.3s}
-  #livestage .rchip .orbit{position:relative;width:14px;height:14px;display:inline-block}#livestage .rchip .orbit i{position:absolute;width:4px;height:4px;border-radius:50%;background:currentColor;top:5px;left:5px;animation:liveorb 1.2s linear infinite}
-  #livestage .rchip .orbit i:nth-child(2){animation-delay:.4s}#livestage .rchip .orbit i:nth-child(3){animation-delay:.8s}
-  #livestage .rfab{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:9px 13px;font-weight:800;font-size:13px;white-space:nowrap}
-  #livestage .rfab.off{background:#374151;color:#9ca3af}#livestage .rfab.on{background:#f59e0b;color:#1f1300;animation:stoppulse 1.2s ease-in-out infinite}
-  #livestage .rfab .key{font:600 10px Menlo,Consolas,monospace;border:1px solid currentColor;border-radius:4px;padding:1px 5px;opacity:.6}
-  #livestage .rsw{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#cbd5e1}#livestage .rsw i{position:relative;width:30px;height:16px;border-radius:999px;background:#22c55e;display:inline-block}#livestage .rsw i:after{content:"";position:absolute;top:2px;left:16px;width:12px;height:12px;border-radius:50%;background:#fff}
-  @media(max-width:640px){#livestage .row{flex-direction:column;align-items:flex-start}}
   /* the tour: a dimmed page, the target lifted above it, a card with an arrow pointing at it */
   #livetour .dim{position:fixed;inset:0;background:#0008;z-index:80}
   .spot{position:relative;z-index:85 !important;box-shadow:0 0 0 4px #fbbf24,0 0 0 9px #fbbf2444;border-radius:999px}
+  #live.lift{z-index:85}   /* the strip is its own stacking level (sticky, z 40): lifted whole while a spotlight is inside it (10-30) */
+  #livetour .rfab{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:5px 9px;font-weight:800;font-size:12px;white-space:nowrap;vertical-align:middle}
+  #livetour .rfab.off{background:#374151;color:#9ca3af}#livetour .rfab.on{background:#f59e0b;color:#1f1300}
   #livefab.spot{position:fixed;border-radius:14px}
   #livetour .card{position:fixed;z-index:90;width:340px;background:#fff;border-radius:14px;padding:18px 20px 16px;box-shadow:0 12px 36px #0006;font-family:Inter,ui-sans-serif,-apple-system,sans-serif;color:#111827}
   #livetour .card:before{content:"";position:absolute;left:var(--ax,30px);width:16px;height:16px;background:#fff;transform:translateX(-50%) rotate(45deg)}
-  #livetour .card.up:before{top:-8px}#livetour .card.down:before{bottom:-8px}
+  #livetour .card.up:before{top:-8px}#livetour .card.down:before{bottom:-8px}#livetour .card.center:before{display:none}
+  #livetour .extra button{margin-right:8px}#livetour button:disabled{opacity:.6;cursor:default}
   #livetour .step{font-size:11px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase}
   #livetour h3{margin:4px 0 8px;font-size:18px}#livetour p{margin:0 0 14px;font-size:15px;line-height:1.5;color:#374151}
   #livetour button{font-size:15px;padding:10px 18px;border-radius:10px;border:0;background:#111827;color:#fff;cursor:pointer}
@@ -364,40 +357,61 @@
       html: 'This status at the top left shows what is going on: <b>Your turn</b> while you speak or browse, <b>Thinking…</b> while the assistant works on what you said, <b>Speaking</b> while it answers.' },
     { target: '#livefab', side: 'above', pin: false, title: 'Cutting in',
       html: 'This button turns <b>amber</b> while the assistant is thinking or speaking. If it starts before you have finished, press it — or the <b>space bar</b> — and keep talking.' },
-    { target: '#livest', side: 'below', pin: true, title: 'The thinking sound',
-      html: 'While it thinks you hear a soft trill. Hover over the status and this switch appears; turn it off if you would rather not hear it.' },
-  ];
+  ];   // the thinking sound is introduced in the rehearsal's result card, after they have heard it (10-30)
   let tourStep = 0;
   const tour = document.createElement('div'); tour.id = 'livetour'; tour.style.display = 'none';
   tour.innerHTML = '<div class="dim"></div><div class="card"><div class="step"></div><h3></h3><p></p><button id="livetourok">Got it</button></div>';
   document.body.appendChild(tour);
-  function placeTour() {
-    if (tour.style.display === 'none') return;
-    const t = TOUR[tourStep]; const el = document.querySelector(t.target); const card = tour.querySelector('.card');
-    if (!el) return;
-    const r = el.getBoundingClientRect(); const cw = card.offsetWidth, ch = card.offsetHeight;
+  let popup = null;                       // the pop-up on screen: a tour step or a rehearsal step (P26)
+  function placePopup() {
+    if (tour.style.display === 'none' || !popup) return;
+    const card = tour.querySelector('.card'); const cw = card.offsetWidth, ch = card.offsetHeight;
+    const el = popup.target ? document.querySelector(popup.target) : null;
+    const strip = document.getElementById('live'); let lift = false;
+    for (const sel of (popup.also || [])) {           // more controls to leave lit, e.g. the ✋ button beside the status
+      const x = document.querySelector(sel); if (x) { x.classList.add('spot'); if (x.closest('#live')) lift = true; }
+    }
+    if (el && el.closest('#live')) lift = true;
+    strip.classList.toggle('lift', lift);
+    card.classList.remove('up', 'down', 'center');
+    if (!el) {                            // nothing to point at: the card sits in the middle of the page
+      card.classList.add('center');
+      card.style.left = Math.max(12, (window.innerWidth - cw) / 2) + 'px'; card.style.top = Math.max(12, (window.innerHeight - ch) / 2) + 'px';
+      return;
+    }
+    const r = el.getBoundingClientRect();
     let left = Math.max(12, Math.min(window.innerWidth - cw - 12, r.left));
-    let top = t.side === 'below' ? r.bottom + (t.pin ? 52 : 14) : r.top - ch - 14;
+    let top = popup.side === 'below' ? r.bottom + (popup.pin ? 52 : 14) : r.top - ch - 14;
     card.style.left = left + 'px'; card.style.top = Math.max(12, top) + 'px';
-    card.classList.toggle('up', t.side === 'below'); card.classList.toggle('down', t.side !== 'below');
+    card.classList.add(popup.side === 'below' ? 'up' : 'down');
     card.style.setProperty('--ax', Math.max(18, Math.min(cw - 18, r.left + r.width / 2 - left)) + 'px');
     el.classList.add('spot');
   }
-  function showTour() {
+  function showPopup(spec) {
     document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+    popup = spec;
+    tour.querySelector('.step').textContent = spec.step || '';
+    tour.querySelector('h3').textContent = spec.title; tour.querySelector('p').innerHTML = spec.html;
+    const ok = document.getElementById('livetourok'); ok.style.display = spec.buttons ? 'none' : '';
+    let extra = tour.querySelector('.extra');
+    if (!extra) { extra = document.createElement('div'); extra.className = 'extra'; ok.parentNode.appendChild(extra); }
+    extra.innerHTML = (spec.buttons || []).map(b => `<button id="${b.id}">${b.label}</button>`).join('');
+    (spec.buttons || []).forEach(b => { const el = extra.querySelector('#' + b.id); if (el) el.onclick = () => b.onclick(el); });
+    document.getElementById('livestwrap').classList.toggle('open', !!spec.pin);
+    tour.style.display = ''; placePopup();
+  }
+  function showTour() {
     const t = TOUR[tourStep];
-    tour.querySelector('.step').textContent = `${tourStep + 1} of ${TOUR.length}`;
-    tour.querySelector('h3').textContent = t.title; tour.querySelector('p').innerHTML = t.html;
-    document.getElementById('livestwrap').classList.toggle('open', !!t.pin);
-    tour.style.display = ''; placeTour();
+    showPopup({ step: `${tourStep + 1} of ${TOUR.length}`, title: t.title, html: t.html, target: t.target, side: t.side, pin: t.pin });
     liveEvent('tour', { step: tourStep + 1 });
   }
   function endTour() {
-    tour.style.display = 'none'; document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+    tour.style.display = 'none'; popup = null; document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+    document.getElementById('live').classList.remove('lift');
     document.getElementById('livestwrap').classList.remove('open');
   }
   document.getElementById('livetourok').onclick = () => { tourStep += 1; if (tourStep >= TOUR.length) { endTour(); applyDemo({ state: 'idle' }, true); } else showTour(); };
-  window.addEventListener('resize', placeTour);
+  window.addEventListener('resize', placePopup);
   let demoShown = '', demoArmed = false;
   function applyDemo(d, force) {
     const c = document.getElementById('livedemo'); if (!c || shownStage !== 'demo') return;
@@ -407,25 +421,21 @@
     if ((st === 'done' || st === 'missed') && !demoArmed) st = 'idle';   // a result from an earlier run is not this one's
     if (st === demoShown && !force) return;
     demoShown = st;
-    const btn = (id, label) => `<p style="margin-top:22px"><button id="${id}" class="primarybtn" style="font-size:16px;padding:12px 22px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer">${label}</button></p>`;
-    // replicas of the real controls, so the card shows what they will see (P21)
-    const chip = (cls, inner) => `<span class="rchip ${cls}">${inner}</span>`;
-    const chips = chip('idle', '<span class="dot"></span>Your turn') + '<span class="arrow">→</span>' + chip('thinking', '<span class="orbit"><i></i><i></i><i></i></span>Thinking…') + '<span class="arrow">→</span>' + chip('speaking', '<span class="bars"><i></i><i></i><i></i></span>Speaking');
-    const fabs = '<span class="rfab off">✋ I wasn\'t done <span class="key">space</span></span><span class="arrow">→</span><span class="rfab on">✋ I wasn\'t done <span class="key">space</span></span>';
-    const views = {
-      idle: '<h2>Try it once</h2>'
-        + '<div class="row"><div class="demo">' + fabs + '</div><p>Press Start. When the button turns amber, press it — or the space bar.</p></div>'
-        + btn('livedemostart', 'Start'),
-      thinking: '<h2>Now</h2><p style="font-size:22px">Press the amber <b>✋</b> button, or the <b>space bar</b>.</p>',
-      done: '<h2>✓ That\'s it</h2><p>Amber: press to cut in. Grey: your turn.</p>'
-        + '<p style="margin-top:12px">The soft trill you heard is the <b>thinking sound</b>. If you\'d rather not hear it, switch it off at the top left — the short chimes at the start and the end of a reply stay. Try the switch now.</p>' + btn('livedemonext', 'Continue'),
-      missed: '<h2>Not this time</h2><p>Try again: press the amber <b>✋</b> button, or the space bar.</p>' + btn('livedemostart', 'Try again'),
+    // P26 (10-30): no replicas — the real status chip and the real ✋ button, dimmed except the one
+    // to press, with the pop-up pointing at it. The card under the dim only says what is going on.
+    c.innerHTML = '<h2>Rehearsal</h2><p>Follow the pop-up. The controls are the real ones.</p>';
+    const start = (el) => { el.disabled = true; el.textContent = 'Listen…'; liveEvent('demo_start', {}); };
+    const specs = {
+      idle: { title: 'Try it once', html: 'Press Start. The assistant starts thinking; when the <b>✋</b> button at the bottom left turns amber, press it — or the <b>space bar</b>.',
+              buttons: [{ id: 'livedemostart', label: 'Start', onclick: start }] },
+      thinking: { target: '#livefab', side: 'above', title: 'Now', html: 'Press the amber <b>✋</b> button, or the <b>space bar</b>.', buttons: [] },
+      done: { target: '#livest', side: 'below', pin: true, also: ['#livefab'], title: '✓ That\'s it',
+              html: '<span class="rfab on">✋ I wasn\'t done</span> amber: press to cut in &nbsp; <span class="rfab off">✋ I wasn\'t done</span> grey: your turn.<br><br>The soft trill you heard is the <b>thinking sound</b>. Try switching it off here, under the status, and you\'ll hear the difference. We start with it on — if at any point you\'d rather not hear it, this is where to switch it off. The short chimes stay either way.',
+              buttons: [{ id: 'livedemonext', label: 'Continue', onclick: (el) => { el.disabled = true; setSoundOn(true, false); liveEvent('advance', { from: 'demo' }); } }] },
+      missed: { target: '#livefab', side: 'above', title: 'Not this time', html: 'Try again: press the amber <b>✋</b> button, or the <b>space bar</b>.',
+                buttons: [{ id: 'livedemostart', label: 'Try again', onclick: start }] },
     };
-    c.innerHTML = views[st] || views.idle;
-    document.getElementById('livestwrap').classList.toggle('open', st === 'done');   // P27: the switch stays in view to try
-    const start = c.querySelector('#livedemostart'), next = c.querySelector('#livedemonext');
-    if (start) start.onclick = () => { start.disabled = true; start.textContent = 'Listen…'; liveEvent('demo_start', {}); };
-    if (next) next.onclick = () => { next.disabled = true; liveEvent('advance', { from: 'demo' }); };
+    showPopup({ step: 'rehearsal', ...(specs[st] || specs.idle) });
   }
   let surveyShown = '';
   function applySurvey(url) {
@@ -545,7 +555,11 @@
   let soundOn = true;
   try { soundOn = localStorage.getItem('livesound:' + KEY) !== 'off'; } catch (e) {}
   function showSound() { sndBtn.classList.toggle('off', !soundOn); sndBtn.querySelector('.lbl').textContent = soundOn ? 'thinking sound on' : 'thinking sound off'; sndBtn.setAttribute('aria-checked', String(soundOn)); sndBtn.setAttribute('role', 'switch'); }
-  sndBtn.onclick = () => { soundOn = !soundOn; try { localStorage.setItem('livesound:' + KEY, soundOn ? 'on' : 'off'); } catch (e) {} showSound(); liveEvent('sound', { on: soundOn }); };
+  function setSoundOn(on, preview) {    // the switch's state, told to the wizard; preview = a two-second sample of what it does (the rehearsal)
+    soundOn = !!on; try { localStorage.setItem('livesound:' + KEY, soundOn ? 'on' : 'off'); } catch (e) {} showSound();
+    liveEvent('sound', { on: soundOn, preview: !!preview });
+  }
+  sndBtn.onclick = () => setSoundOn(!soundOn, shownStage === 'demo');   // in the rehearsal they hear what the switch does
   showSound();
   if (!soundOn) liveEvent('sound', { on: false });          // a reload keeps their choice on the wizard too
   function setSpeaking(on) {
