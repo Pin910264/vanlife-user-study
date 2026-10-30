@@ -417,10 +417,12 @@
         + '<div class="row"><div class="demo">' + fabs + '</div><p>Press Start. When the button turns amber, press it — or the space bar.</p></div>'
         + btn('livedemostart', 'Start'),
       thinking: '<h2>Now</h2><p style="font-size:22px">Press the amber <b>✋</b> button, or the <b>space bar</b>.</p>',
-      done: '<h2>✓ That\'s it</h2><p>Amber: press to cut in. Grey: your turn.</p>' + btn('livedemonext', 'Continue'),
+      done: '<h2>✓ That\'s it</h2><p>Amber: press to cut in. Grey: your turn.</p>'
+        + '<p style="margin-top:12px">The soft trill you heard is the <b>thinking sound</b>. If you\'d rather not hear it, switch it off at the top left — the short chimes at the start and the end of a reply stay. Try the switch now.</p>' + btn('livedemonext', 'Continue'),
       missed: '<h2>Not this time</h2><p>Try again: press the amber <b>✋</b> button, or the space bar.</p>' + btn('livedemostart', 'Try again'),
     };
     c.innerHTML = views[st] || views.idle;
+    document.getElementById('livestwrap').classList.toggle('open', st === 'done');   // P27: the switch stays in view to try
     const start = c.querySelector('#livedemostart'), next = c.querySelector('#livedemonext');
     if (start) start.onclick = () => { start.disabled = true; start.textContent = 'Listen…'; liveEvent('demo_start', {}); };
     if (next) next.onclick = () => { next.disabled = true; liveEvent('advance', { from: 'demo' }); };
