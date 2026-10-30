@@ -323,9 +323,8 @@
       const titles = { consent: 'Consent form', questionnaire: 'Questionnaire', debrief: 'Debrief' };
       const c = document.createElement('div'); c.className = 'survey';
       c.innerHTML = `<div class="frame"><iframe id="livesurvey" title="${titles[st]}"></iframe></div>`
-        + `<div class="sfoot"><span>${titles[st]} · this page moves on by itself when the form is done</span><button id="livesurveydone" class="mini">Done</button></div>`;
+        + `<div class="sfoot"><span>${titles[st]} · this page moves on by itself when the form is done</span></div>`;
       stageBox.appendChild(c);
-      c.querySelector('#livesurveydone').onclick = () => liveEvent('advance', { from: st });
       surveyShown = '';
     }
     if (st === 'check') {
