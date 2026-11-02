@@ -130,9 +130,11 @@
   #livetour .rfab{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:5px 9px;font-weight:800;font-size:12px;white-space:nowrap;vertical-align:middle}
   #livetour .rfab.off{background:#374151;color:#9ca3af}#livetour .rfab.on{background:#f59e0b;color:#1f1300}
   #livefab.spot{position:fixed;border-radius:14px}
+  #liveplanbox.spot{box-shadow:0 0 0 4px #fbbf24,0 0 0 9px #fbbf2444}   /* the map's own shadow rule (an id) would hide the ring (P30) */
   #livetour .card{position:fixed;z-index:90;width:340px;background:#fff;border-radius:14px;padding:18px 20px 16px;box-shadow:0 12px 36px #0006;font-family:Inter,ui-sans-serif,-apple-system,sans-serif;color:#111827}
   #livetour .card:before{content:"";position:absolute;left:var(--ax,30px);width:16px;height:16px;background:#fff;transform:translateX(-50%) rotate(45deg)}
   #livetour .card.up:before{top:-8px}#livetour .card.down:before{bottom:-8px}#livetour .card.center:before{display:none}
+  #livetour .card.left:before{left:auto;right:-8px;top:var(--ay,30px);transform:translateY(-50%) rotate(45deg)}   /* beside its target: the enlarged map (P30) */
   #livetour .extra button{margin-right:8px}#livetour button:disabled{opacity:.6;cursor:default}
   #livetour .step{font-size:11px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase}
   #livetour h3{margin:4px 0 8px;font-size:18px}#livetour p{margin:0 0 14px;font-size:15px;line-height:1.5;color:#374151}
@@ -171,11 +173,12 @@
   const planSvg = document.getElementById('liveplan');
   let planGeometry = null, placementState = {revision: 0, marker: null};
   let placementBusy = false, placementRequest = null, placementError = '';
+  let practicePin = null, onPracticePin = null;   // the rehearsal's pin (P30): drawn here, never sent; onPracticePin is set only while that card is up
 
   function renderPlacement() {
     const old = document.getElementById('placementpin'); if (old) old.remove();
     const draft = placementRequest && !placementRequest.clear ? placementRequest : null;
-    const m = draft || (placementRequest && placementRequest.clear ? null : placementState.marker);
+    const m = draft || practicePin || (placementRequest && placementRequest.clear ? null : placementState.marker);
     if (m && planGeometry) {
       const {MX, T, MY, sz, sx, Z0, X0} = planGeometry;
       const px = MX + (m.z - Z0) * sz, py = T + MY + (m.x - X0) * sx;
@@ -185,7 +188,7 @@
       g.innerHTML = `<circle cx="${px}" cy="${py}" r="10" fill="${color}" stroke="white" stroke-width="3"/><path d="M ${px-16} ${py} h 32 M ${px} ${py-16} v 32" stroke="${color}" stroke-width="2"/>`;
       planSvg.appendChild(g);
     }
-    const status = placementError || (placementBusy ? 'Sending…' : m ? ({pending:'Received — suggested spot for your next turn.', in_turn:'Included in the current turn.', previous:'Previous suggestion — click again for a new turn.'}[m.status] || '') : 'No location selected.');
+    const status = placementError || (placementBusy ? 'Sending…' : m ? ({pending:'Received — suggested spot for your next turn.', in_turn:'Included in the current turn.', previous:'Previous suggestion — click again for a new turn.', practice:'Your practice spot — in the session, a spot goes to the assistant with what you say next.'}[m.status] || '') : 'No location selected.');
     document.getElementById('placementstatus').textContent = status;
     document.getElementById('placementclear').disabled = placementBusy || (!m && !placementRequest);
     document.getElementById('placementretry').hidden = !placementError || !placementRequest;
@@ -222,6 +225,7 @@
   }
   function selectPlacement(point) {
     if (placementBusy) return;
+    if (onPracticePin) { onPracticePin(point); return; }   // the rehearsal (P30): the tap stays on this page
     placementRequest = {id: crypto.randomUUID(), revision: placementState.revision, ...point};
     sendPlacement();
   }
@@ -309,7 +313,7 @@
     stageBox.style.display = catalog ? 'none' : '';
     stageBox.classList.toggle('wide', survey);
     stageBox.innerHTML = '';
-    if (st !== 'demo') endTour();
+    if (st !== 'demo') { endTour(); endPinPractice(); }
     const siteHeader = document.querySelector('header');
     if (siteHeader) siteHeader.style.display = survey ? 'none' : '';     // the form gets the whole page (10-19)
     if (survey) {
@@ -373,13 +377,21 @@
     }
     if (el && el.closest('#live')) lift = true;
     strip.classList.toggle('lift', lift);
-    card.classList.remove('up', 'down', 'center');
+    card.classList.remove('up', 'down', 'center', 'left');
     if (!el) {                            // nothing to point at: the card sits in the middle of the page
       card.classList.add('center');
       card.style.left = Math.max(12, (window.innerWidth - cw) / 2) + 'px'; card.style.top = Math.max(12, (window.innerHeight - ch) / 2) + 'px';
       return;
     }
     const r = el.getBoundingClientRect();
+    if (popup.side === 'left' && r.left >= cw + 24) {   // beside the target, arrow on the card's right edge (the enlarged map, P30); above it when the window is too narrow
+      const top = Math.max(12, Math.min(window.innerHeight - ch - 12, r.top + r.height / 2 - ch / 2));
+      card.style.left = (r.left - cw - 14) + 'px'; card.style.top = top + 'px';
+      card.classList.add('left');
+      card.style.setProperty('--ay', Math.max(18, Math.min(ch - 18, r.top + r.height / 2 - top)) + 'px');
+      el.classList.add('spot');
+      return;
+    }
     let left = Math.max(12, Math.min(window.innerWidth - cw - 12, r.left));
     let top = popup.side === 'below' ? r.bottom + (popup.pin ? 52 : 14) : r.top - ch - 14;
     card.style.left = left + 'px'; card.style.top = Math.max(12, top) + 'px';
@@ -412,15 +424,19 @@
   }
   document.getElementById('livetourok').onclick = () => { tourStep += 1; if (tourStep >= TOUR.length) { endTour(); applyDemo({ state: 'idle' }, true); } else showTour(); };
   window.addEventListener('resize', placePopup);
-  let demoShown = '', demoArmed = false;
+  let demoShown = '', demoArmed = false, demoPin = '';   // demoPin: '' | 'ask' | 'done' — the pin step after the ✓ card (P30), a page-side step under the server's "done"
   function applyDemo(d, force) {
     const c = document.getElementById('livedemo'); if (!c || shownStage !== 'demo') return;
     if (tourStep < TOUR.length && !force) return;
     let st = (d && d.state) || 'idle';
     if (st === 'thinking') demoArmed = true;
     if ((st === 'done' || st === 'missed') && !demoArmed) st = 'idle';   // a result from an earlier run is not this one's
+    if (st !== 'done') demoPin = ''; else if (demoPin) st = 'pin_' + demoPin;   // a restarted rehearsal drops the pin step
     if (st === demoShown && !force) return;
     demoShown = st;
+    const pinStep = st === 'pin_ask' || st === 'pin_done';
+    planbox.style.display = pinStep ? '' : 'none';       // the map is otherwise hidden until the catalog opens
+    if (pinStep) { onPracticePin = practiceTap; setPlanBig(true); } else endPinPractice();
     // P26 (10-30): no replicas — the real status chip and the real ✋ button, dimmed except the one
     // to press, with the pop-up pointing at it. The card under the dim only says what is going on.
     c.innerHTML = '<h2>Rehearsal</h2><p>Follow the pop-up. The controls are the real ones.</p>';
@@ -431,11 +447,30 @@
       thinking: { target: '#livefab', side: 'above', title: 'Now', html: 'Press the amber <b>✋</b> button, or the <b>space bar</b>.', buttons: [] },
       done: { target: '#livest', side: 'below', pin: true, also: ['#livefab'], title: '✓ That\'s it',
               html: '<span class="rfab on">✋ I wasn\'t done</span> amber: press to cut in &nbsp; <span class="rfab off">✋ I wasn\'t done</span> grey: your turn.<br><br>The soft trill you heard is the <b>thinking sound</b>. Try switching it off here, under the status, and you\'ll hear the difference. We start with it on — if at any point you\'d rather not hear it, this is where to switch it off. The short chimes stay either way.',
-              buttons: [{ id: 'livedemonext', label: 'Continue', onclick: (el) => { el.disabled = true; setSoundOn(true, false); liveEvent('advance', { from: 'demo' }); } }] },
+              buttons: [{ id: 'livedemonext', label: 'Continue', onclick: (el) => { el.disabled = true; setSoundOn(true, false); demoPin = 'ask'; applyDemo({ state: 'done' }, true); } }] },
+      // P30 (11-02): the pin — the map opens enlarged beside the card; a tap puts the marker there and stays on this page
+      pin_ask: { target: '#liveplanbox', side: 'left', title: 'Your map',
+                 html: 'This is your van from above. Once the furniture opens it sits small at the bottom right, and a tap enlarges it. When the assistant asks where something goes, you can <b>tap the spot on the map</b> instead of describing it.<br><br>Try it: tap a spot where you might put something.', buttons: [] },
+      pin_done: { target: '#liveplanbox', side: 'left', title: '✓ That\'s the pin',
+                  html: 'When the assistant asks where something goes, you can tap instead of describing it — the spot goes along with what you say next. It\'s a rough area, not an exact position; tap again to move it, <b>Clear location</b> takes it away.',
+                  buttons: [{ id: 'livedemonext', label: 'Continue', onclick: (el) => { el.disabled = true; practicePin = null; renderPlacement(); liveEvent('advance', { from: 'demo' }); } }] },
       missed: { target: '#livefab', side: 'above', title: 'Not this time', html: 'Try again: press the amber <b>✋</b> button, or the <b>space bar</b>.',
                 buttons: [{ id: 'livedemostart', label: 'Try again', onclick: start }] },
     };
     showPopup({ step: 'rehearsal', ...(specs[st] || specs.idle) });
+    if (pinStep) setTimeout(placePopup, 220);            // the map has just grown: point at where it ended up
+  }
+  function practiceTap(point) {       // P30: a tap on the map during the rehearsal — the marker is drawn here and never sent, so nothing reaches the operators and no stale pin waits for the first turn
+    practicePin = point.clear ? null : { ...point, status: 'practice' };
+    renderPlacement();
+    liveEvent('demo_pin', point.clear ? { clear: true } : { x: Math.round(point.x), z: Math.round(point.z) });
+    demoPin = point.clear ? 'ask' : 'done';
+    applyDemo({ state: 'done' }, true);
+  }
+  function endPinPractice() {         // leaving the pin step or the rehearsal: the practice marker gone, the map back to its small corner
+    onPracticePin = null;
+    if (practicePin) { practicePin = null; renderPlacement(); }
+    if (planbox.classList.contains('big')) setPlanBig(false);
   }
   let surveyShown = '';
   function applySurvey(url) {
@@ -464,6 +499,7 @@
   }
   function setPlanBig(big) {
     if (planbox.classList.contains('big') === big) return;
+    if (!big && onPracticePin) return;                  // the map stays open while the pin card is up (P30): a tap on the dim or Esc must not fold it
     planbox.classList.toggle('big', big);
     document.getElementById('liveplanhint').textContent = big ? 'Minimize' : 'Enlarge';
     placementTools.style.display = big ? 'block' : 'none';
