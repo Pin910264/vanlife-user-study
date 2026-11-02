@@ -118,6 +118,19 @@
   #livestage .sentence input::placeholder{color:#94a3b8;font-style:italic}
   #livestage .sentence b{color:#1d4ed8;font-weight:600}
   #livestage .hint{font-size:15px;color:#6b7280}
+  #livestage .sub{font-size:15px;color:#6b7280;margin:-8px 0 18px}
+  #livestage .timeline{display:flex;gap:12px;margin:22px 0 6px}
+  #livestage .timeline div{flex:1;background:#f3f4f6;border-radius:14px;padding:16px 16px 14px}
+  #livestage .timeline b{display:block;font-size:22px;letter-spacing:-.02em;color:#111827;margin-bottom:4px}
+  #livestage .timeline span{display:block;font-size:14px;line-height:1.45;color:#475467}
+  #livestage .notes{list-style:none;padding:0;margin:20px 0 4px;display:grid;gap:12px}
+  #livestage .notes li{display:flex;gap:16px;align-items:flex-start;background:#f3f4f6;border-radius:14px;padding:14px 16px}
+  #livestage .notes i{font:800 15px/1 Inter,ui-sans-serif,-apple-system,sans-serif;color:#1d4ed8;background:#dbeafe;border-radius:10px;padding:8px 10px;font-style:normal;flex:none}
+  #livestage .notes b{display:block;font-size:16px;color:#111827;margin-bottom:2px}
+  #livestage .notes span{font-size:14px;line-height:1.5;color:#475467}
+  #livestage .layout{display:block;width:100%;max-width:640px;margin:18px auto 6px;border-radius:12px}
+  #livestage .cap{font-size:14px;color:#6b7280;text-align:center;margin:0 0 22px}
+  #livestage .go{font-size:17px;padding:13px 24px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer;margin-top:18px}
   #livestage.wide{max-width:none;margin:0;padding:0}
   #livestage .survey .frame{background:#fff}
   #livestage iframe{display:block;width:100%;height:calc(100vh - 44px);border:0}
@@ -298,13 +311,15 @@
     };
     return c;
   }
-  let shownStage = '';
-  function applyStage(st) {
-    if (!st || st === shownStage) return;
-    shownStage = st;
-    liveEvent('stage_shown', { stage: st });
+  let shownStage = '', shownCard = -1, voiceSeen = false;   // P25: briefing cards per stage; the voice card is a page-side step before the tour
+  function applyStage(st, card, cards) {
+    card = card || 0; cards = cards || 1;
+    if (!st || (st === shownStage && card === shownCard)) return;
+    shownStage = st; shownCard = card;
+    liveEvent('stage_shown', { stage: st, card });
     const catalog = st === 'browse';
-    const survey = st === 'consent' || st === 'questionnaire' || st === 'debrief';
+    const lastCard = card >= cards - 1;
+    const survey = (st === 'consent' && lastCard) || st === 'questionnaire' || st === 'debrief';
     app.style.display = catalog ? '' : 'none';
     planbox.style.display = catalog ? '' : 'none';
     strip.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';   // the rehearsal needs the button in view
@@ -325,15 +340,46 @@
       stageBox.appendChild(c);
       surveyShown = '';
     }
-    if (st === 'check') {
+    if (st === 'consent' && !lastCard) {
+      // P25: the briefing slides as cards — welcome and the timeline, then the study notes; the form is the last card
       const c = document.createElement('div'); c.className = 'card';
-      c.innerHTML = '<h2>Before we start</h2><p>Please read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
+      if (card === 0) c.innerHTML = '<h2>Welcome</h2><p class="sub">A study on conversational support during a design task · Interaction Research Lab, Cornell</p>'
+        + '<p>The session takes about an hour, in three parts.</p>'
+        + '<div class="timeline"><div><b>10 min</b><span>Getting familiar with the system</span></div>'
+        + '<div><b>30 min</b><span>The design task: a kitchen and a bedroom for a camper van</span></div>'
+        + '<div><b>20 min</b><span>A questionnaire and a short interview</span></div></div>';
+      else c.innerHTML = '<h2>Before we begin</h2><p>A few study notes.</p><ul class="notes">'
+        + '<li><i>01</i><div><b>Audio and video recording</b><span>The session is recorded for research analysis.</span></div></li>'
+        + '<li><i>02</i><div><b>Participation is voluntary</b><span>You may stop at any time, for any reason.</span></div></li>'
+        + '<li><i>03</i><div><b>Informed consent</b><span>The study begins after you have reviewed and signed the consent form.</span></div></li></ul>';
+      stageBox.appendChild(c);
+    } else if (st === 'check') {
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Your screen</h2><p>Two things side by side: the 3D van from the researcher\'s screen share, and this page, where the furniture catalog will open.</p>'
+        + '<img class="layout" src="img/screen-layout.webp" alt="One screen split in two: the 3D van on the left, this page on the right">'
+        + '<p class="cap">Arrange your screen like this, with the shared van on one side and this page on the other.</p>'
+        + '<p>Then read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
       stageBox.appendChild(c);
     } else if (st === 'demo') {
       const c = document.createElement('div'); c.className = 'card'; c.id = 'livedemo';
       stageBox.appendChild(c);
-      if (tourStep < TOUR.length) { c.innerHTML = '<h2>A quick tour</h2><p>Three things to know before we start.</p>'; setTimeout(showTour, 300); }
+      if (!voiceSeen) {
+        // P25: the voice slide, before the tour — Continue is theirs, while the researcher reads the lines
+        c.innerHTML = '<h2>Talking with the assistant</h2><p>You and the assistant take turns speaking, like a normal conversation.</p><ul class="notes">'
+          + '<li><i>1</i><div><b>Just talk</b><span>Explain your ideas the way you would to another person.</span></div></li>'
+          + '<li><i>2</i><div><b>Replies take a few seconds</b><span>After you finish speaking, give it a moment before speaking again.</span></div></li>'
+          + '<li><i>3</i><div><b>The van catches up a few seconds later</b><span>Changes you agree on appear in the 3D van shortly after.</span></div></li>'
+          + '<li><i>4</i><div><b>Cameras stay off</b><span>So you can focus on the system and your design.</span></div></li></ul>'
+          + '<button class="go" id="livevoiceok">Continue</button>';
+        c.querySelector('#livevoiceok').onclick = () => { voiceSeen = true; liveEvent('voice_card_done', {}); shownStage = ''; applyStage('demo', card, cards); };
+      }
+      else if (tourStep < TOUR.length) { c.innerHTML = '<h2>A quick tour</h2><p>Three things to know before we start.</p>'; setTimeout(showTour, 300); }
       else applyDemo({ state: 'idle' }, true);
+    } else if (st === 'intro' && !lastCard) {
+      // P25: "any questions?" before the sentence
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Any questions so far?</h2><p>About the study, the system, or anything the researcher has explained. Ask away — the trip sentence comes next.</p>';
+      stageBox.appendChild(c);
     } else if (st === 'intro') {
       stageBox.appendChild(introCard());
       const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
@@ -764,7 +810,7 @@
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
-      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDemo(s.demo); applySurvey(s.survey);
+      applyStage(s.stage || 'browse', s.card, s.cards); applyWords(s.words); applyTalkSentence(s.intro); applyDemo(s.demo); applySurvey(s.survey);
       const ck = (s.chosen || []).join(',');
       const chosenChanged = ck !== chosenKey;
       if (chosenChanged) { chosen = new Set(s.chosen || []); chosenKey = ck; }
