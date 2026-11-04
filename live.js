@@ -109,6 +109,38 @@
   #livestage .sentence input::placeholder{color:#94a3b8;font-style:italic}
   #livestage .sentence b{color:#1d4ed8;font-weight:600}
   #livestage .hint{font-size:15px;color:#6b7280}
+
+  /* A running record of the participant's ideas before the catalog opens. */
+  #live.talking .row,#live.talking .hist,#live.talking .keys,#live.talking #livetg{display:none!important}
+  #livestage.talking{margin:24px auto 96px}
+  #livestage.talking .sentence{font-size:19px;line-height:1.65;margin:12px 0 16px}
+  #livestage .discovery{margin-top:20px}
+  #livestage .discovery-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  #livestage .discovery h2{font-size:22px;margin-bottom:8px}
+  #livestage .discovery-count{font-size:13px;color:#64748b}
+  #livestage .discovery-steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0;margin:22px 0}
+  #livestage .discovery-step{border-top:3px solid #e5e7eb;padding:10px 0 0;min-width:0}
+  #livestage .discovery-step strong{display:block;font-size:14px;font-weight:600;color:#64748b}
+  #livestage .discovery-step span{display:block;font-size:12px;margin-top:4px;color:#64748b}
+  #livestage .discovery-step.current{border-color:#2563eb}
+  #livestage .discovery-step.current strong,#livestage .discovery-step.current span{color:#1d4ed8}
+  #livestage .discovery-step.discussed{border-color:#0f766e}
+  #livestage .discovery-step.discussed strong{color:#0f766e}
+  #livestage .discovery-list{list-style:none;padding:0;margin:0}
+  #livestage .discovery-item{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:15px 0;border-top:1px solid #e5e7eb}
+  #livestage .discovery-item>div{min-width:0;overflow-wrap:anywhere}
+  #livestage .discovery-name{font-size:16px;font-weight:600;line-height:1.4}
+  #livestage .discovery-detail{font-size:14px;line-height:1.5;margin-top:5px;color:#475569;white-space:pre-wrap}
+  #livestage .discovery-area{font-size:12px;color:#64748b;margin-top:5px}
+  #livestage .discovery-badge{flex-shrink:0;border-radius:999px;padding:4px 9px;background:#f1f5f9;color:#475569;font-size:11px;line-height:1.5}
+  #livestage .discovery-badge.detailed{background:#edf7f5;color:#0f766e}
+  #livestage .discovery-empty{padding:20px;background:#f8fafc;border-radius:10px;font-size:15px;line-height:1.6;color:#64748b}
+  #livestage .discovery-foot{font-size:13px;margin-top:16px;color:#64748b}
+  #livestage .discovery-routines{margin-top:16px;font-size:13px;color:#475569}
+  #livestage .discovery-routines summary{cursor:pointer;padding:6px 0}
+  #livestage .discovery-routines p{font-size:14px;line-height:1.5;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere}
+  #livestage .discovery-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  @media(max-width:480px){#livestage.talking .card{padding:22px 18px}#livestage .discovery-item{gap:8px;flex-wrap:wrap}#livestage .discovery-step strong{font-size:13px}#livestage .discovery-step span{font-size:11px}}
   /* rehearsal card replicas (P21) */
   #livestage .row{display:flex;gap:18px;align-items:center;margin:16px 0}#livestage .row p{margin:0;flex:1}
   #livestage .demo{display:flex;align-items:center;gap:8px;flex:0 0 auto;background:#111827;border-radius:12px;padding:10px 12px}
@@ -148,7 +180,7 @@
   strip.innerHTML =
     '<div class="hd"><span id="livestwrap"><span id="livest" class="idle"><span class="dot"></span>Your turn</span>'
     + '<div id="livemenu"><div class="box"><button id="livesnd" title="The soft trill while the assistant thinks — switch it off if you find it distracting; the short chime at the start and the amber light stay"><span class="sw"></span><span class="lbl">thinking sound on</span></button></div></div></span>'
-    + '<span class="dot" id="livedot"></span><b>Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="keys">← → to flip through them</span><span class="sp"></span>'
+    + '<span class="dot" id="livedot"></span><b id="livetitle">Mentioned by the assistant</b><span id="livenote" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">connecting…</span><span class="keys">← → to flip through them</span><span class="sp"></span>'
     + '<button class="tg" id="livetg" style="display:none">Earlier ▾</button>'
     + '</div>'
     + '<div class="row" id="liverow"><div class="none">Items the assistant names appear here as it says them — tap one to see it.</div></div>'
@@ -296,6 +328,9 @@
   function applyStage(st) {
     if (!st || st === shownStage) return;
     shownStage = st;
+    strip.classList.toggle('talking', st === 'talk');
+    stageBox.classList.toggle('talking', st === 'talk');
+    document.getElementById('livetitle').textContent = st === 'talk' ? 'Your trip conversation' : 'Mentioned by the assistant';
     liveEvent('stage_shown', { stage: st });
     const catalog = st === 'browse';
     app.style.display = catalog ? '' : 'none';
@@ -327,6 +362,14 @@
       const c = document.createElement('div'); c.className = 'card';
       c.innerHTML = '<h2>Your trip</h2><div class="sentence"></div><p class="hint">Talk it through with the assistant. The furniture opens once you have covered the basics.</p>';
       stageBox.appendChild(c);
+      const progress = document.createElement('section'); progress.className = 'card discovery'; progress.id = 'livediscovery';
+      progress.setAttribute('aria-labelledby', 'discovery-title');
+      progress.innerHTML = '<div class="discovery-head"><h2 id="discovery-title">What we’ve talked about</h2><span class="discovery-count"></span></div>'
+        + '<p class="hint">Ideas for your van, updated as we talk.</p><ol class="discovery-steps" aria-label="Conversation progress"></ol>'
+        + '<ul class="discovery-list" aria-label="Your ideas"></ul><div class="discovery-empty">As you describe your trip, the furniture and needs you mention will appear here.</div>'
+        + '<details class="discovery-routines" hidden><summary>Day &amp; night notes</summary><div></div></details>'
+        + '<p class="discovery-foot">You can change any of these ideas as we talk.</p><span class="discovery-announcement" role="status" aria-live="polite"></span>';
+      stageBox.appendChild(progress);
     }
     if (catalog) window.scrollTo(0, 0);
   }
@@ -410,6 +453,43 @@
     sen.innerHTML = '';
     const parts = ["I'm going on a one-month trip from ", v.from || '___', ' with ', v.who || '___', ' to ', v.where || '___', ' in ', v.when || '___', '. During the trip, we\'ll be ', v.activity || '___', '.'];
     parts.forEach((t, i) => { if (i % 2) { const b = document.createElement('b'); b.textContent = t; sen.appendChild(b); } else sen.appendChild(document.createTextNode(t)); });
+  }
+  function applyDiscovery(data) {
+    const panel = document.getElementById('livediscovery');
+    if (shownStage !== 'talk' || !panel) return;
+    data = data || {steps: [], routines: [], items: []};
+    const signature = JSON.stringify(data);
+    if (panel.dataset.signature === signature) return; // polling must not rebuild unchanged notes or repeat announcements
+    panel.dataset.signature = signature;
+    const el = (tag, cls, text) => { const node = document.createElement(tag); node.className = cls; node.textContent = text; return node; };
+    const steps = panel.querySelector('.discovery-steps'); steps.replaceChildren();
+    const labels = {discussed: 'Discussed', current: 'Talking now', upcoming: 'Coming up'};
+    for (const step of data.steps || []) {
+      const status = Object.hasOwn(labels, step.status) ? step.status : 'upcoming';
+      const row = el('li', 'discovery-step ' + status, '');
+      if (status === 'current') row.setAttribute('aria-current', 'step');
+      row.append(el('strong', '', step.label), el('span', '', labels[status])); steps.appendChild(row);
+    }
+    const list = panel.querySelector('.discovery-list'); list.replaceChildren();
+    for (const item of data.items || []) {
+      const row = el('li', 'discovery-item', '');
+      const content = el('div', '', ''); content.appendChild(el('div', 'discovery-name', item.name));
+      if (item.detail) content.appendChild(el('div', 'discovery-detail', item.detail));
+      if (item.area) content.appendChild(el('div', 'discovery-area', item.area));
+      row.append(content, el('span', 'discovery-badge' + (item.detail ? ' detailed' : ''), item.detail ? 'Details noted' : 'Idea noted'));
+      list.appendChild(row);
+    }
+    const count = (data.items || []).length;
+    const countText = count + (count === 1 ? ' idea noted' : ' ideas noted');
+    panel.querySelector('.discovery-count').textContent = count ? countText : '';
+    panel.querySelector('.discovery-empty').hidden = count > 0;
+    const routines = panel.querySelector('.discovery-routines');
+    const notes = (data.routines || []).filter(r => r.note);
+    routines.hidden = !notes.length;
+    const body = routines.querySelector('div'); body.replaceChildren();
+    notes.forEach(r => body.appendChild(el('p', '', r.label + ': ' + r.note)));
+    const current = (data.steps || []).find(s => s.status === 'current');
+    panel.querySelector('.discovery-announcement').textContent = countText + '. ' + (current ? 'Talking about ' + current.label.toLowerCase() + '.' : 'Conversation notes updated.');
   }
   function setPlanBig(big) {
     if (planbox.classList.contains('big') === big) return;
@@ -650,12 +730,12 @@
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
-      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDemo(s.demo);
+      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDiscovery(s.discovery); applyDemo(s.demo);
       const ck = (s.chosen || []).join(',');
       const chosenChanged = ck !== chosenKey;
       if (chosenChanged) { chosen = new Set(s.chosen || []); chosenKey = ck; }
       document.getElementById('livedot').className = 'dot on';
-      document.getElementById('livenote').textContent = (s.mentions || []).some(m => m.items && m.items.length) ? 'latest reply' : 'waiting for the first suggestion';
+      document.getElementById('livenote').textContent = shownStage === 'talk' ? 'ideas appear below' : (s.mentions || []).some(m => m.items && m.items.length) ? 'latest reply' : 'waiting for the first suggestion';
       render(s.mentions || [], chosenChanged);
       if (s.van && s.floor) drawPlan(s.floor, s.van, chosen);
       applyPlacement(s.placement);
