@@ -390,9 +390,9 @@
       stageBox.appendChild(c);
     } else if (st === 'check') {
       const c = document.createElement('div'); c.className = 'card';
-      c.innerHTML = '<h2>Your screen</h2><p>Two things side by side: the 3D van from the researcher\'s screen share, and this page, where the furniture catalog will open.</p>'
+      c.innerHTML = '<h2>Zoom and the study website</h2><p>Two windows side by side: Zoom, where the researcher shares the 3D van, and this website, where the furniture catalog will open.</p>'
         + '<img class="layout" src="img/screen-layout.webp" alt="One screen split in two: the 3D van on the left, this page on the right">'
-        + '<p class="cap">Arrange your screen like this, with the shared van on one side and this page on the other.</p>'
+        + '<p class="cap">Arrange your screen like this: Zoom with the van on one side, this website on the other.</p>'
         + '<p>Then read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
       stageBox.appendChild(c);
     } else if (st === 'demo') {
