@@ -19,6 +19,11 @@
   const SAMPLE = q.get('sample') ? '&sample=1' : '';   // testing: stand-in mentions on an empty session
   const STAGE = q.get('stage') ? '&stage=' + encodeURIComponent(q.get('stage')) : '';   // testing: preview one stage (check / intro / talk / browse)
   if (!FEED || typeof DATA === 'undefined') return;
+  // a script error on the participant's machine is otherwise invisible to the operators (10-30): report it to the feed
+  window.addEventListener('error', (e) => {
+    try { fetch(`${FEED}/p/event?key=${encodeURIComponent(KEY)}`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'js_error', data: { message: String(e.message), source: String(e.filename || ''), line: e.lineno || 0, col: e.colno || 0 } }) }); } catch (_) {}
+  });
 
   const css = document.createElement('style');
   css.textContent = `
@@ -69,6 +74,10 @@
   @keyframes liveorb{from{transform:rotate(0) translateX(6px)}to{transform:rotate(360deg) translateX(6px)}}
   /* the floating ✋: fixed bottom-left, one size, space bar too; the sound switch drops down on hover */
   #livefab{position:fixed;left:16px;bottom:16px;z-index:60}
+  #livenotebox{display:none;position:fixed;left:16px;bottom:72px;z-index:59;width:300px;background:#0b1220;border:1px solid #334155;border-radius:10px;padding:10px 12px;box-shadow:0 4px 16px #0006;color:#e2e8f0;font:12px/1.4 Inter,system-ui,sans-serif}
+  #livenotebox .nh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;display:flex;gap:8px}#livenotebox .nh span{flex:1}#livenotebox .nh em{font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;color:#4ade80}
+  #livenotebox textarea{width:100%;box-sizing:border-box;margin-top:6px;height:58px;resize:vertical;font:inherit;color:#e2e8f0;background:#111a2e;border:1px solid #334155;border-radius:8px;padding:6px 8px}
+  #livenotebox .nf{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:11px;color:#94a3b8}#livenotebox .nf span{flex:1}#livenotebox button{font:inherit;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;cursor:pointer}
   #livefab .stopbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 16px;font-size:15px;border-radius:14px;box-shadow:0 6px 18px #0005;min-width:200px;justify-content:center}
   #livefab .stopbtn .key{font:600 10px Menlo,Consolas,monospace;border:1px solid currentColor;border-radius:4px;padding:1px 5px;opacity:.6}
   @media(max-width:720px){#livefab{left:8px;bottom:8px}#livefab .stopbtn{min-width:0;padding:10px 12px;font-size:13px}#livefab .stopbtn .key{display:none}}
@@ -141,29 +150,37 @@
   #livestage .discovery-routines p{font-size:14px;line-height:1.5;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere}
   #livestage .discovery-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
   @media(max-width:480px){#livestage.talking .card{padding:22px 18px}#livestage .discovery-item{gap:8px;flex-wrap:wrap}#livestage .discovery-step strong{font-size:13px}#livestage .discovery-step span{font-size:11px}}
-  /* rehearsal card replicas (P21) */
-  #livestage .row{display:flex;gap:18px;align-items:center;margin:16px 0}#livestage .row p{margin:0;flex:1}
-  #livestage .demo{display:flex;align-items:center;gap:8px;flex:0 0 auto;background:#111827;border-radius:12px;padding:10px 12px}
-  #livestage .arrow{color:#6b7280;font-size:14px}
-  #livestage .rchip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px 4px 8px;font-weight:700;font-size:12px;white-space:nowrap}
-  #livestage .rchip.idle{background:#1f2937;color:#9ca3af}#livestage .rchip.idle .dot{width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block}
-  #livestage .rchip.thinking{background:#2a1a00;color:#fbbf24}#livestage .rchip.speaking{background:#0b1f3a;color:#93c5fd}
-  #livestage .rchip .bars{display:inline-flex;gap:2px;align-items:flex-end;height:14px}#livestage .rchip .bars i{width:3px;background:currentColor;border-radius:2px;animation:livebar .8s ease-in-out infinite}
-  #livestage .rchip .bars i:nth-child(2){animation-delay:.15s}#livestage .rchip .bars i:nth-child(3){animation-delay:.3s}
-  #livestage .rchip .orbit{position:relative;width:14px;height:14px;display:inline-block}#livestage .rchip .orbit i{position:absolute;width:4px;height:4px;border-radius:50%;background:currentColor;top:5px;left:5px;animation:liveorb 1.2s linear infinite}
-  #livestage .rchip .orbit i:nth-child(2){animation-delay:.4s}#livestage .rchip .orbit i:nth-child(3){animation-delay:.8s}
-  #livestage .rfab{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:9px 13px;font-weight:800;font-size:13px;white-space:nowrap}
-  #livestage .rfab.off{background:#374151;color:#9ca3af}#livestage .rfab.on{background:#f59e0b;color:#1f1300;animation:stoppulse 1.2s ease-in-out infinite}
-  #livestage .rfab .key{font:600 10px Menlo,Consolas,monospace;border:1px solid currentColor;border-radius:4px;padding:1px 5px;opacity:.6}
-  #livestage .rsw{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#cbd5e1}#livestage .rsw i{position:relative;width:30px;height:16px;border-radius:999px;background:#22c55e;display:inline-block}#livestage .rsw i:after{content:"";position:absolute;top:2px;left:16px;width:12px;height:12px;border-radius:50%;background:#fff}
-  @media(max-width:640px){#livestage .row{flex-direction:column;align-items:flex-start}}
+  #livestage .sub{font-size:15px;color:#6b7280;margin:-8px 0 18px}
+  #livestage .timeline{display:flex;gap:12px;margin:22px 0 6px}
+  #livestage .timeline div{flex:1;background:#f3f4f6;border-radius:14px;padding:16px 16px 14px}
+  #livestage .timeline b{display:block;font-size:22px;letter-spacing:-.02em;color:#111827;margin-bottom:4px}
+  #livestage .timeline span{display:block;font-size:14px;line-height:1.45;color:#475467}
+  #livestage .notes{list-style:none;padding:0;margin:20px 0 4px;display:grid;gap:12px}
+  #livestage .notes li{display:flex;gap:16px;align-items:flex-start;background:#f3f4f6;border-radius:14px;padding:14px 16px}
+  #livestage .notes i{font:800 15px/1 Inter,ui-sans-serif,-apple-system,sans-serif;color:#1d4ed8;background:#dbeafe;border-radius:10px;padding:8px 10px;font-style:normal;flex:none}
+  #livestage .notes b{display:block;font-size:16px;color:#111827;margin-bottom:2px}
+  #livestage .notes span{font-size:14px;line-height:1.5;color:#475467}
+  #livestage .layout{display:block;width:100%;max-width:640px;margin:18px auto 6px;border-radius:12px}
+  #livestage .cap{font-size:14px;color:#6b7280;text-align:center;margin:0 0 22px}
+  #livestage .go{font-size:17px;padding:13px 24px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer;margin-top:18px}
+  #livestage.wide{max-width:none;margin:0;padding:0}
+  #livestage .survey .frame{background:#fff}
+  #livestage iframe{display:block;width:100%;height:calc(100vh - 44px);border:0}
+  #livestage .sfoot{height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;font-size:13px;color:#6b7280;background:#f5f6f8;border-top:1px solid #e5e7eb}
+  #livestage .mini{font-size:13px;padding:5px 12px;border-radius:8px;border:1px solid #cfd4dc;background:#fff;cursor:pointer}
   /* the tour: a dimmed page, the target lifted above it, a card with an arrow pointing at it */
   #livetour .dim{position:fixed;inset:0;background:#0008;z-index:80}
   .spot{position:relative;z-index:85 !important;box-shadow:0 0 0 4px #fbbf24,0 0 0 9px #fbbf2444;border-radius:999px}
+  #live.lift{z-index:85}   /* the strip is its own stacking level (sticky, z 40): lifted whole while a spotlight is inside it (10-30) */
+  #livetour .rfab{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:5px 9px;font-weight:800;font-size:12px;white-space:nowrap;vertical-align:middle}
+  #livetour .rfab.off{background:#374151;color:#9ca3af}#livetour .rfab.on{background:#f59e0b;color:#1f1300}
   #livefab.spot{position:fixed;border-radius:14px}
+  #liveplanbox.spot{box-shadow:0 0 0 4px #fbbf24,0 0 0 9px #fbbf2444}   /* the map's own shadow rule (an id) would hide the ring (P30) */
   #livetour .card{position:fixed;z-index:90;width:340px;background:#fff;border-radius:14px;padding:18px 20px 16px;box-shadow:0 12px 36px #0006;font-family:Inter,ui-sans-serif,-apple-system,sans-serif;color:#111827}
   #livetour .card:before{content:"";position:absolute;left:var(--ax,30px);width:16px;height:16px;background:#fff;transform:translateX(-50%) rotate(45deg)}
-  #livetour .card.up:before{top:-8px}#livetour .card.down:before{bottom:-8px}
+  #livetour .card.up:before{top:-8px}#livetour .card.down:before{bottom:-8px}#livetour .card.center:before{display:none}
+  #livetour .card.left:before{left:auto;right:-8px;top:var(--ay,30px);transform:translateY(-50%) rotate(45deg)}   /* beside its target: the enlarged map (P30) */
+  #livetour .extra button{margin-right:8px}#livetour button:disabled{opacity:.6;cursor:default}
   #livetour .step{font-size:11px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase}
   #livetour h3{margin:4px 0 8px;font-size:18px}#livetour p{margin:0 0 14px;font-size:15px;line-height:1.5;color:#374151}
   #livetour button{font-size:15px;padding:10px 18px;border-radius:10px;border:0;background:#111827;color:#fff;cursor:pointer}
@@ -201,11 +218,12 @@
   const planSvg = document.getElementById('liveplan');
   let planGeometry = null, placementState = {revision: 0, marker: null};
   let placementBusy = false, placementRequest = null, placementError = '';
+  let practicePin = null, onPracticePin = null;   // the rehearsal's pin (P30): drawn here, never sent; onPracticePin is set only while that card is up
 
   function renderPlacement() {
     const old = document.getElementById('placementpin'); if (old) old.remove();
     const draft = placementRequest && !placementRequest.clear ? placementRequest : null;
-    const m = draft || (placementRequest && placementRequest.clear ? null : placementState.marker);
+    const m = draft || practicePin || (placementRequest && placementRequest.clear ? null : placementState.marker);
     if (m && planGeometry) {
       const {MX, T, MY, sz, sx, Z0, X0} = planGeometry;
       const px = MX + (m.z - Z0) * sz, py = T + MY + (m.x - X0) * sx;
@@ -215,7 +233,7 @@
       g.innerHTML = `<circle cx="${px}" cy="${py}" r="10" fill="${color}" stroke="white" stroke-width="3"/><path d="M ${px-16} ${py} h 32 M ${px} ${py-16} v 32" stroke="${color}" stroke-width="2"/>`;
       planSvg.appendChild(g);
     }
-    const status = placementError || (placementBusy ? 'Sending…' : m ? ({pending:'Received — suggested spot for your next turn.', in_turn:'Included in the current turn.', previous:'Previous suggestion — click again for a new turn.'}[m.status] || '') : 'No location selected.');
+    const status = placementError || (placementBusy ? 'Sending…' : m ? ({pending:'Received — suggested spot for your next turn.', in_turn:'Included in the current turn.', previous:'Previous suggestion — click again for a new turn.', practice:'Your practice spot — in the session, a spot goes to the assistant with what you say next.'}[m.status] || '') : 'No location selected.');
     document.getElementById('placementstatus').textContent = status;
     document.getElementById('placementclear').disabled = placementBusy || (!m && !placementRequest);
     document.getElementById('placementretry').hidden = !placementError || !placementRequest;
@@ -252,6 +270,7 @@
   }
   function selectPlacement(point) {
     if (placementBusy) return;
+    if (onPracticePin) { onPracticePin(point); return; }   // the rehearsal (P30): the tap stays on this page
     placementRequest = {id: crypto.randomUUID(), revision: placementState.revision, ...point};
     sendPlacement();
   }
@@ -324,37 +343,89 @@
     };
     return c;
   }
-  let shownStage = '';
-  function applyStage(st) {
-    if (!st || st === shownStage) return;
-    shownStage = st;
+  let shownStage = '', shownCard = -1, voiceSeen = false;   // P25: briefing cards per stage; the voice card is a page-side step before the tour
+  function applyStage(st, card, cards) {
+    card = card || 0; cards = cards || 1;
+    if (!st || (st === shownStage && card === shownCard)) return;
+    shownStage = st; shownCard = card;
     strip.classList.toggle('talking', st === 'talk');
     stageBox.classList.toggle('talking', st === 'talk');
     document.getElementById('livetitle').textContent = st === 'talk' ? 'Your trip conversation' : 'Mentioned by the assistant';
-    liveEvent('stage_shown', { stage: st });
+    liveEvent('stage_shown', { stage: st, card });
     const catalog = st === 'browse';
+    const lastCard = card >= cards - 1;
+    const survey = (st === 'consent' && lastCard) || st === 'questionnaire' || st === 'debrief';
     app.style.display = catalog ? '' : 'none';
     planbox.style.display = catalog ? '' : 'none';
     strip.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';   // the rehearsal needs the button in view
     fab.style.display = (st === 'demo' || st === 'talk' || catalog) ? '' : 'none';
     notice.style.display = catalog ? '' : 'none';
     stageBox.style.display = catalog ? 'none' : '';
+    stageBox.classList.toggle('wide', survey);
     stageBox.innerHTML = '';
-    if (st !== 'demo') endTour();
-    if (st === 'check') {
+    if (st !== 'demo') { endTour(); endPinPractice(); }
+    const siteHeader = document.querySelector('header');
+    if (siteHeader) siteHeader.style.display = survey ? 'none' : '';     // the form gets the whole page (10-19)
+    if (survey) {
+      const titles = { consent: 'Consent form', questionnaire: 'Questionnaire', debrief: 'Debrief' };
+      const c = document.createElement('div'); c.className = 'survey';
+      // no Done button (10-30, P24): the form's end-of-survey redirect moves the page on; a stalled form is moved on from the console
+      c.innerHTML = `<div class="frame"><iframe id="livesurvey" title="${titles[st]}"></iframe></div>`
+        + `<div class="sfoot"><span id="livesurveynote">${titles[st]} · the form appears here when the researcher shares it</span></div>`;
+      stageBox.appendChild(c);
+      surveyShown = '';
+    }
+    if (st === 'consent' && !lastCard) {
+      // P25: the briefing slides as cards — welcome and the timeline, then the study notes; the form is the last card
       const c = document.createElement('div'); c.className = 'card';
-      c.innerHTML = '<h2>Before we start</h2><p>Please read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
+      if (card === 0) c.innerHTML = '<h2>Welcome</h2><p class="sub">A study on conversational support during a design task · Interaction Research Lab, Cornell</p>'
+        + '<p>The session takes about an hour, in three parts.</p>'
+        + '<div class="timeline"><div><b>10 min</b><span>Getting familiar with the system</span></div>'
+        + '<div><b>30 min</b><span>The design task: a kitchen and a bedroom for a camper van</span></div>'
+        + '<div><b>20 min</b><span>A questionnaire and a short interview</span></div></div>';
+      else c.innerHTML = '<h2>Before we begin</h2><p>A few study notes.</p><ul class="notes">'
+        + '<li><i>01</i><div><b>Audio and video recording</b><span>The session is recorded for research analysis.</span></div></li>'
+        + '<li><i>02</i><div><b>Participation is voluntary</b><span>You may stop at any time, for any reason.</span></div></li>'
+        + '<li><i>03</i><div><b>Informed consent</b><span>The study begins after you have reviewed and signed the consent form.</span></div></li></ul>';
+      stageBox.appendChild(c);
+    } else if (st === 'check') {
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Your screen</h2><p>Two things side by side: the 3D van from the researcher\'s screen share, and this page, where the furniture catalog will open.</p>'
+        + '<img class="layout" src="img/screen-layout.webp" alt="One screen split in two: the 3D van on the left, this page on the right">'
+        + '<p class="cap">Arrange your screen like this, with the shared van on one side and this page on the other.</p>'
+        + '<p>Then read these three words to the researcher.</p><div class="words"></div><p class="hint">They check that this page is connected to your session.</p>';
       stageBox.appendChild(c);
     } else if (st === 'demo') {
       const c = document.createElement('div'); c.className = 'card'; c.id = 'livedemo';
       stageBox.appendChild(c);
-      if (tourStep < TOUR.length) { c.innerHTML = '<h2>A quick tour</h2><p>Three things to know before we start.</p>'; setTimeout(showTour, 300); }
+      if (!voiceSeen) {
+        // P25: the voice slide, before the tour — Continue is theirs, while the researcher reads the lines
+        c.innerHTML = '<h2>Talking with the assistant</h2><p>You and the assistant take turns speaking, like a normal conversation.</p><ul class="notes">'
+          + '<li><i>1</i><div><b>Just talk</b><span>Explain your ideas the way you would to another person.</span></div></li>'
+          + '<li><i>2</i><div><b>Replies take a few seconds</b><span>After you finish speaking, give it a moment before speaking again.</span></div></li>'
+          + '<li><i>3</i><div><b>The van catches up a few seconds later</b><span>Changes you agree on appear in the 3D van shortly after.</span></div></li>'
+          + '<li><i>4</i><div><b>Cameras stay off</b><span>So you can focus on the system and your design.</span></div></li></ul>'
+          + '<button class="go" id="livevoiceok">Continue</button>';
+        c.querySelector('#livevoiceok').onclick = () => { voiceSeen = true; liveEvent('voice_card_done', {}); shownStage = ''; applyStage('demo', card, cards); };
+      }
+      else if (tourStep < TOUR.length) { c.innerHTML = '<h2>A quick tour</h2><p>Three things to know before we start.</p>'; setTimeout(showTour, 300); }
       else applyDemo({ state: 'idle' }, true);
+    } else if (st === 'intro' && !lastCard) {
+      // P25: "any questions?" before the sentence
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Any questions so far?</h2><p>About the study, the system, or anything the researcher has explained. Ask away — the trip sentence comes next.</p>';
+      stageBox.appendChild(c);
     } else if (st === 'intro') {
       stageBox.appendChild(introCard());
       const first = stageBox.querySelector('input'); if (first && !first.value) first.focus();
-    } else if (st !== 'talk') {
+    } else if (st === 'interview') {
+      // P29 (10-30): the researcher talks with them — a quiet page, nothing to do on it
+      const c = document.createElement('div'); c.className = 'card';
+      c.innerHTML = '<h2>Thank you</h2><p>The researcher will talk with you now.</p>';
+      stageBox.appendChild(c);
+    } else if (!survey && st !== 'talk') {
       // a stage this copy of the page does not know (older cached script): say so instead of a blank page
+      // (10-30, P23: a form stage is known — it used to land here too and say "out of date" under every form)
       const c = document.createElement('div'); c.className = 'card';
       c.innerHTML = '<h2>One moment</h2><p>This page is out of date — reload it (⌘⇧R or pull down to refresh).</p>';
       stageBox.appendChild(c);
@@ -379,67 +450,128 @@
       html: 'This status at the top left shows what is going on: <b>Your turn</b> while you speak or browse, <b>Thinking…</b> while the assistant works on what you said, <b>Speaking</b> while it answers.' },
     { target: '#livefab', side: 'above', pin: false, title: 'Cutting in',
       html: 'This button turns <b>amber</b> while the assistant is thinking or speaking. If it starts before you have finished, press it — or the <b>space bar</b> — and keep talking.' },
-    { target: '#livest', side: 'below', pin: true, title: 'The thinking sound',
-      html: 'While it thinks you hear a soft trill. Hover over the status and this switch appears; turn it off if you would rather not hear it.' },
-  ];
+  ];   // the thinking sound is introduced in the rehearsal's result card, after they have heard it (10-30)
   let tourStep = 0;
   const tour = document.createElement('div'); tour.id = 'livetour'; tour.style.display = 'none';
   tour.innerHTML = '<div class="dim"></div><div class="card"><div class="step"></div><h3></h3><p></p><button id="livetourok">Got it</button></div>';
   document.body.appendChild(tour);
-  function placeTour() {
-    if (tour.style.display === 'none') return;
-    const t = TOUR[tourStep]; const el = document.querySelector(t.target); const card = tour.querySelector('.card');
-    if (!el) return;
-    const r = el.getBoundingClientRect(); const cw = card.offsetWidth, ch = card.offsetHeight;
+  let popup = null;                       // the pop-up on screen: a tour step or a rehearsal step (P26)
+  function placePopup() {
+    if (tour.style.display === 'none' || !popup) return;
+    const card = tour.querySelector('.card'); const cw = card.offsetWidth, ch = card.offsetHeight;
+    const el = popup.target ? document.querySelector(popup.target) : null;
+    const strip = document.getElementById('live'); let lift = false;
+    for (const sel of (popup.also || [])) {           // more controls to leave lit, e.g. the ✋ button beside the status
+      const x = document.querySelector(sel); if (x) { x.classList.add('spot'); if (x.closest('#live')) lift = true; }
+    }
+    if (el && el.closest('#live')) lift = true;
+    strip.classList.toggle('lift', lift);
+    card.classList.remove('up', 'down', 'center', 'left');
+    if (!el) {                            // nothing to point at: the card sits in the middle of the page
+      card.classList.add('center');
+      card.style.left = Math.max(12, (window.innerWidth - cw) / 2) + 'px'; card.style.top = Math.max(12, (window.innerHeight - ch) / 2) + 'px';
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    if (popup.side === 'left' && r.left >= cw + 24) {   // beside the target, arrow on the card's right edge (the enlarged map, P30); above it when the window is too narrow
+      const top = Math.max(12, Math.min(window.innerHeight - ch - 12, r.top + r.height / 2 - ch / 2));
+      card.style.left = (r.left - cw - 14) + 'px'; card.style.top = top + 'px';
+      card.classList.add('left');
+      card.style.setProperty('--ay', Math.max(18, Math.min(ch - 18, r.top + r.height / 2 - top)) + 'px');
+      el.classList.add('spot');
+      return;
+    }
     let left = Math.max(12, Math.min(window.innerWidth - cw - 12, r.left));
-    let top = t.side === 'below' ? r.bottom + (t.pin ? 52 : 14) : r.top - ch - 14;
+    let top = popup.side === 'below' ? r.bottom + (popup.pin ? 52 : 14) : r.top - ch - 14;
     card.style.left = left + 'px'; card.style.top = Math.max(12, top) + 'px';
-    card.classList.toggle('up', t.side === 'below'); card.classList.toggle('down', t.side !== 'below');
+    card.classList.add(popup.side === 'below' ? 'up' : 'down');
     card.style.setProperty('--ax', Math.max(18, Math.min(cw - 18, r.left + r.width / 2 - left)) + 'px');
     el.classList.add('spot');
   }
-  function showTour() {
+  function showPopup(spec) {
     document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+    popup = spec;
+    tour.querySelector('.step').textContent = spec.step || '';
+    tour.querySelector('h3').textContent = spec.title; tour.querySelector('p').innerHTML = spec.html;
+    const ok = document.getElementById('livetourok'); ok.style.display = spec.buttons ? 'none' : '';
+    let extra = tour.querySelector('.extra');
+    if (!extra) { extra = document.createElement('div'); extra.className = 'extra'; ok.parentNode.appendChild(extra); }
+    extra.innerHTML = (spec.buttons || []).map(b => `<button id="${b.id}">${b.label}</button>`).join('');
+    (spec.buttons || []).forEach(b => { const el = extra.querySelector('#' + b.id); if (el) el.onclick = () => b.onclick(el); });
+    document.getElementById('livestwrap').classList.toggle('open', !!spec.pin);
+    tour.style.display = ''; placePopup();
+  }
+  function showTour() {
     const t = TOUR[tourStep];
-    tour.querySelector('.step').textContent = `${tourStep + 1} of ${TOUR.length}`;
-    tour.querySelector('h3').textContent = t.title; tour.querySelector('p').innerHTML = t.html;
-    document.getElementById('livestwrap').classList.toggle('open', !!t.pin);
-    tour.style.display = ''; placeTour();
+    showPopup({ step: `${tourStep + 1} of ${TOUR.length}`, title: t.title, html: t.html, target: t.target, side: t.side, pin: t.pin });
     liveEvent('tour', { step: tourStep + 1 });
   }
   function endTour() {
-    tour.style.display = 'none'; document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+    tour.style.display = 'none'; popup = null; document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+    document.getElementById('live').classList.remove('lift');
     document.getElementById('livestwrap').classList.remove('open');
   }
   document.getElementById('livetourok').onclick = () => { tourStep += 1; if (tourStep >= TOUR.length) { endTour(); applyDemo({ state: 'idle' }, true); } else showTour(); };
-  window.addEventListener('resize', placeTour);
-  let demoShown = '', demoArmed = false;
+  window.addEventListener('resize', placePopup);
+  let demoShown = '', demoArmed = false, demoPin = '';   // demoPin: '' | 'ask' | 'done' — the pin step after the ✓ card (P30), a page-side step under the server's "done"
   function applyDemo(d, force) {
     const c = document.getElementById('livedemo'); if (!c || shownStage !== 'demo') return;
     if (tourStep < TOUR.length && !force) return;
     let st = (d && d.state) || 'idle';
     if (st === 'thinking') demoArmed = true;
     if ((st === 'done' || st === 'missed') && !demoArmed) st = 'idle';   // a result from an earlier run is not this one's
+    if (st !== 'done') demoPin = ''; else if (demoPin) st = 'pin_' + demoPin;   // a restarted rehearsal drops the pin step
     if (st === demoShown && !force) return;
     demoShown = st;
-    const btn = (id, label) => `<p style="margin-top:22px"><button id="${id}" class="primarybtn" style="font-size:16px;padding:12px 22px;border-radius:12px;border:0;background:#111827;color:#fff;cursor:pointer">${label}</button></p>`;
-    // replicas of the real controls, so the card shows what they will see (P21)
-    const chip = (cls, inner) => `<span class="rchip ${cls}">${inner}</span>`;
-    const chips = chip('idle', '<span class="dot"></span>Your turn') + '<span class="arrow">→</span>' + chip('thinking', '<span class="orbit"><i></i><i></i><i></i></span>Thinking…') + '<span class="arrow">→</span>' + chip('speaking', '<span class="bars"><i></i><i></i><i></i></span>Speaking');
-    const fabs = '<span class="rfab off">✋ I wasn\'t done <span class="key">space</span></span><span class="arrow">→</span><span class="rfab on">✋ I wasn\'t done <span class="key">space</span></span>';
-    const views = {
-      idle: '<h2>Try it once</h2>'
-        + '<div class="row"><div class="demo">' + fabs + '</div><p>Press Start. When the button turns amber, press it — or the space bar.</p></div>'
-        + btn('livedemostart', 'Start'),
-      thinking: '<h2>Now</h2><p style="font-size:22px">Press the amber <b>✋</b> button, or the <b>space bar</b>.</p>',
-      done: '<h2>✓ That\'s it</h2><p>Amber: press to cut in. Grey: your turn.</p>' + btn('livedemonext', 'Continue'),
-      missed: '<h2>Not this time</h2><p>Try again: press the amber <b>✋</b> button, or the space bar.</p>' + btn('livedemostart', 'Try again'),
+    const pinStep = st === 'pin_ask' || st === 'pin_done';
+    planbox.style.display = pinStep ? '' : 'none';       // the map is otherwise hidden until the catalog opens
+    if (pinStep) { onPracticePin = practiceTap; setPlanBig(true); } else endPinPractice();
+    // P26 (10-30): no replicas — the real status chip and the real ✋ button, dimmed except the one
+    // to press, with the pop-up pointing at it. The card under the dim only says what is going on.
+    c.innerHTML = '<h2>Rehearsal</h2><p>Follow the pop-up. The controls are the real ones.</p>';
+    const start = (el) => { el.disabled = true; el.textContent = 'Listen…'; liveEvent('demo_start', {}); };
+    const specs = {
+      idle: { title: 'Try it once', html: 'Press Start. The assistant starts thinking; when the <b>✋</b> button at the bottom left turns amber, press it — or the <b>space bar</b>.',
+              buttons: [{ id: 'livedemostart', label: 'Start', onclick: start }] },
+      thinking: { target: '#livefab', side: 'above', title: 'Now', html: 'Press the amber <b>✋</b> button, or the <b>space bar</b>.', buttons: [] },
+      done: { target: '#livest', side: 'below', pin: true, also: ['#livefab'], title: '✓ That\'s it',
+              html: '<span class="rfab on">✋ I wasn\'t done</span> amber: press to cut in &nbsp; <span class="rfab off">✋ I wasn\'t done</span> grey: your turn.<br><br>The soft trill you heard is the <b>thinking sound</b>. Try switching it off here, under the status, and you\'ll hear the difference. We start with it on — if at any point you\'d rather not hear it, this is where to switch it off. The short chimes stay either way.',
+              buttons: [{ id: 'livedemonext', label: 'Continue', onclick: (el) => { el.disabled = true; setSoundOn(true, false); demoPin = 'ask'; applyDemo({ state: 'done' }, true); } }] },
+      // P30 (11-02): the pin — the map opens enlarged beside the card; a tap puts the marker there and stays on this page
+      pin_ask: { target: '#liveplanbox', side: 'left', title: 'Your map',
+                 html: 'This is your van from above. Once the furniture opens it sits small at the bottom right, and a tap enlarges it. When the assistant asks where something goes, you can <b>tap the spot on the map</b> instead of describing it.<br><br>Try it: tap a spot where you might put something.', buttons: [] },
+      pin_done: { target: '#liveplanbox', side: 'left', title: '✓ That\'s the pin',
+                  html: 'When the assistant asks where something goes, you can tap instead of describing it — the spot goes along with what you say next. It\'s a rough area, not an exact position; tap again to move it, <b>Clear location</b> takes it away.',
+                  buttons: [{ id: 'livedemonext', label: 'Continue', onclick: (el) => { el.disabled = true; practicePin = null; renderPlacement(); liveEvent('advance', { from: 'demo' }); } }] },
+      missed: { target: '#livefab', side: 'above', title: 'Not this time', html: 'Try again: press the amber <b>✋</b> button, or the <b>space bar</b>.',
+                buttons: [{ id: 'livedemostart', label: 'Try again', onclick: start }] },
     };
-    c.innerHTML = views[st] || views.idle;
-    const start = c.querySelector('#livedemostart'), next = c.querySelector('#livedemonext');
-    if (start) start.onclick = () => { start.disabled = true; start.textContent = 'Listen…'; liveEvent('demo_start', {}); };
-    if (next) next.onclick = () => { next.disabled = true; liveEvent('advance', { from: 'demo' }); };
+    showPopup({ step: 'rehearsal', ...(specs[st] || specs.idle) });
+    if (pinStep) setTimeout(placePopup, 220);            // the map has just grown: point at where it ended up
   }
+  function practiceTap(point) {       // P30: a tap on the map during the rehearsal — the marker is drawn here and never sent, so nothing reaches the operators and no stale pin waits for the first turn
+    practicePin = point.clear ? null : { ...point, status: 'practice' };
+    renderPlacement();
+    liveEvent('demo_pin', point.clear ? { clear: true } : { x: Math.round(point.x), z: Math.round(point.z) });
+    demoPin = point.clear ? 'ask' : 'done';
+    applyDemo({ state: 'done' }, true);
+  }
+  function endPinPractice() {         // leaving the pin step or the rehearsal: the practice marker gone, the map back to its small corner
+    onPracticePin = null;
+    if (practicePin) { practicePin = null; renderPlacement(); }
+    if (planbox.classList.contains('big')) setPlanBig(false);
+  }
+  let surveyShown = '';
+  function applySurvey(url) {
+    const f = document.getElementById('livesurvey'); if (!f || !url || url === surveyShown) return;
+    surveyShown = url; f.src = url;
+    const n = document.getElementById('livesurveynote'); if (n) n.textContent = n.textContent.split(' · ')[0] + ' · this page moves on by itself when the form is done';
+  }
+  // Qualtrics' end-of-survey redirect points at survey_done.html, which tells this page the form is finished
+  window.addEventListener('message', e => {
+    const d = e.data || {};
+    if (d.vanlife === 'survey_done' && (shownStage === 'consent' || shownStage === 'questionnaire' || shownStage === 'debrief')) liveEvent('advance', { from: shownStage });
+  });
   function applyWords(words) {
     const w = stageBox.querySelector('.words'); if (!w) return;
     const txt = (words || []).join(' ');
@@ -457,7 +589,10 @@
   function applyDiscovery(data) {
     const panel = document.getElementById('livediscovery');
     if (shownStage !== 'talk' || !panel) return;
-    data = data || {steps: [], routines: [], items: []};
+    // This is a read-only projection of Op A's shared notes, supplied by the
+    // existing state poll. No separate fetch, storage, or discovery event.
+    panel.hidden = !data;
+    if (!data) { delete panel.dataset.signature; return; }
     const signature = JSON.stringify(data);
     if (panel.dataset.signature === signature) return; // polling must not rebuild unchanged notes or repeat announcements
     panel.dataset.signature = signature;
@@ -493,6 +628,7 @@
   }
   function setPlanBig(big) {
     if (planbox.classList.contains('big') === big) return;
+    if (!big && onPracticePin) return;                  // the map stays open while the pin card is up (P30): a tap on the dim or Esc must not fold it
     planbox.classList.toggle('big', big);
     document.getElementById('liveplanhint').textContent = big ? 'Minimize' : 'Enlarge';
     placementTools.style.display = big ? 'block' : 'none';
@@ -584,7 +720,11 @@
   let soundOn = true;
   try { soundOn = localStorage.getItem('livesound:' + KEY) !== 'off'; } catch (e) {}
   function showSound() { sndBtn.classList.toggle('off', !soundOn); sndBtn.querySelector('.lbl').textContent = soundOn ? 'thinking sound on' : 'thinking sound off'; sndBtn.setAttribute('aria-checked', String(soundOn)); sndBtn.setAttribute('role', 'switch'); }
-  sndBtn.onclick = () => { soundOn = !soundOn; try { localStorage.setItem('livesound:' + KEY, soundOn ? 'on' : 'off'); } catch (e) {} showSound(); liveEvent('sound', { on: soundOn }); };
+  function setSoundOn(on, preview) {    // the switch's state, told to the wizard; preview = a two-second sample of what it does (the rehearsal)
+    soundOn = !!on; try { localStorage.setItem('livesound:' + KEY, soundOn ? 'on' : 'off'); } catch (e) {} showSound();
+    liveEvent('sound', { on: soundOn, preview: !!preview });
+  }
+  sndBtn.onclick = () => setSoundOn(!soundOn, shownStage === 'demo');   // in the rehearsal they hear what the switch does
   showSound();
   if (!soundOn) liveEvent('sound', { on: false });          // a reload keeps their choice on the wizard too
   function setSpeaking(on) {
@@ -724,13 +864,36 @@
     shownTurn = latest.turn;
   }
 
+  // dev notes (10-29): when the feed has a DEV_NOTES file (the quad demo), a box to write
+  // what to change about this page; it is filed on the feed with the turn and what the page shows
+  let noteBox = null;
+  function showNoteBox() {
+    if (noteBox) return;
+    noteBox = document.createElement('aside'); noteBox.id = 'livenotebox';
+    noteBox.innerHTML = '<div class="nh"><span>Dev note · participant page</span><em id="livenoteok"></em></div>'
+      + '<textarea id="livenotetx" placeholder="what to change here — ⌘↩ saves · 3: files it under turn 3"></textarea>'
+      + '<div class="nf"><span>filed with the turn and what this page shows</span><button type="button" id="livenotebt">Save</button></div>';
+    document.body.appendChild(noteBox); noteBox.style.display = 'block';
+    const tx = noteBox.querySelector('#livenotetx'), ok = noteBox.querySelector('#livenoteok');
+    async function save() {
+      const t = tx.value.trim(); if (!t) return;
+      try {
+        const r = await fetch(`${FEED}/notes?key=${encodeURIComponent(KEY)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ surface: 'p', text: t }) });
+        const j = await r.json(); if (!j.ok) throw new Error(j.error || r.status);
+        tx.value = ''; ok.textContent = 'saved · turn ' + j.turn; setTimeout(() => { ok.textContent = ''; }, 2500);
+      } catch (e) { ok.textContent = 'not saved: ' + e.message; }
+    }
+    noteBox.querySelector('#livenotebt').onclick = save;
+    tx.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });
+  }
+
   async function tick() {
     try {
       const r = await fetch(`${FEED}/p/state?key=${encodeURIComponent(KEY)}${SAMPLE}${STAGE}`, { cache: 'no-store' });
       if (!r.ok) throw new Error(r.status);
       const s = await r.json();
       failures = 0;
-      applyStage(s.stage || 'browse'); applyWords(s.words); applyTalkSentence(s.intro); applyDiscovery(s.discovery); applyDemo(s.demo);
+      applyStage(s.stage || 'browse', s.card, s.cards); applyWords(s.words); applyTalkSentence(s.intro); applyDiscovery(s.discovery); applyDemo(s.demo); applySurvey(s.survey);
       const ck = (s.chosen || []).join(',');
       const chosenChanged = ck !== chosenKey;
       if (chosenChanged) { chosen = new Set(s.chosen || []); chosenKey = ck; }
@@ -742,6 +905,7 @@
       window.liveSpeaking = !!s.speaking;
       setSpeaking(!!s.speaking);
       setState(s.state || (s.speaking ? 'thinking' : 'idle'));
+      if (s.dev_notes) showNoteBox();
     } catch (e) {
       if (++failures >= 3) {
         document.getElementById('livedot').className = 'dot';
