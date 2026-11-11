@@ -590,7 +590,10 @@
   function applyDiscovery(data) {
     const panel = document.getElementById('livediscovery');
     if (shownStage !== 'talk' || !panel) return;
-    data = data || {steps: [], routines: [], items: []};
+    // This is a read-only projection of Op A's shared notes, supplied by the
+    // existing state poll. No separate fetch, storage, or discovery event.
+    panel.hidden = !data;
+    if (!data) { delete panel.dataset.signature; return; }
     const signature = JSON.stringify(data);
     if (panel.dataset.signature === signature) return; // polling must not rebuild unchanged notes or repeat announcements
     panel.dataset.signature = signature;
