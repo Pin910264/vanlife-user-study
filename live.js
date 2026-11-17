@@ -74,6 +74,8 @@
   @keyframes liveorb{from{transform:rotate(0) translateX(6px)}to{transform:rotate(360deg) translateX(6px)}}
   /* the floating ✋: fixed bottom-left, one size, space bar too; the sound switch drops down on hover */
   #livefab{position:fixed;left:16px;bottom:16px;z-index:60}
+  #livenotetab{display:none;position:fixed;left:16px;bottom:72px;z-index:59;font:700 11px/1 Inter,ui-sans-serif,-apple-system,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;background:#0b1220;border:1px solid #334155;border-radius:999px;padding:7px 12px;cursor:pointer}
+  #livenotebox .nh button{font:16px/1 inherit;color:#94a3b8;background:none;border:0;cursor:pointer;padding:0 2px}
   #livenotebox{display:none;position:fixed;left:16px;bottom:72px;z-index:59;width:300px;background:#0b1220;border:1px solid #334155;border-radius:10px;padding:10px 12px;box-shadow:0 4px 16px #0006;color:#e2e8f0;font:12px/1.4 Inter,system-ui,sans-serif}
   #livenotebox .nh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;display:flex;gap:8px}#livenotebox .nh span{flex:1}#livenotebox .nh em{font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;color:#4ade80}
   #livenotebox textarea{width:100%;box-sizing:border-box;margin-top:6px;height:58px;resize:vertical;font:inherit;color:#e2e8f0;background:#111a2e;border:1px solid #334155;border-radius:8px;padding:6px 8px}
@@ -612,7 +614,7 @@
       const content = el('div', '', ''); content.appendChild(el('div', 'discovery-name', item.name));
       if (item.detail) content.appendChild(el('div', 'discovery-detail', item.detail));
       if (item.area) content.appendChild(el('div', 'discovery-area', item.area));
-      row.append(content, el('span', 'discovery-badge' + (item.detail ? ' detailed' : ''), item.detail ? 'Details noted' : 'Idea noted'));
+      row.append(content);                                   // P32 (11-17): no 'idea noted' badge — everything here is a noted idea
       list.appendChild(row);
     }
     const count = (data.items || []).length;
@@ -870,11 +872,17 @@
   let noteBox = null;
   function showNoteBox() {
     if (noteBox) return;
+    // P31 (11-17): a small tab in the corner until it is opened — the open box covered the words and the Continue button (Pin, PIN-3)
+    const tab = document.createElement('button'); tab.id = 'livenotetab'; tab.type = 'button'; tab.textContent = 'Dev note';
+    document.body.appendChild(tab);
     noteBox = document.createElement('aside'); noteBox.id = 'livenotebox';
-    noteBox.innerHTML = '<div class="nh"><span>Dev note · participant page</span><em id="livenoteok"></em></div>'
+    noteBox.innerHTML = '<div class="nh"><span>Dev note · participant page</span><em id="livenoteok"></em><button type="button" id="livenotecl" title="fold away">×</button></div>'
       + '<textarea id="livenotetx" placeholder="what to change here — ⌘↩ saves · 3: files it under turn 3"></textarea>'
       + '<div class="nf"><span>filed with the turn and what this page shows</span><button type="button" id="livenotebt">Save</button></div>';
-    document.body.appendChild(noteBox); noteBox.style.display = 'block';
+    document.body.appendChild(noteBox);
+    let open = false; try { open = localStorage.getItem('devnote.open') === '1'; } catch (e) {}
+    const setOpen = (v) => { open = v; noteBox.style.display = v ? 'block' : 'none'; tab.style.display = v ? 'none' : 'block'; try { localStorage.setItem('devnote.open', v ? '1' : '0'); } catch (e) {} if (v) noteBox.querySelector('#livenotetx').focus(); };
+    tab.onclick = () => setOpen(true); noteBox.querySelector('#livenotecl').onclick = () => setOpen(false); setOpen(open);
     const tx = noteBox.querySelector('#livenotetx'), ok = noteBox.querySelector('#livenoteok');
     async function save() {
       const t = tx.value.trim(); if (!t) return;
