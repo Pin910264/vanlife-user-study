@@ -182,7 +182,7 @@ const modal=document.getElementById('modal');
 let state={filter:'All',q:''};
 function renderHome(){
   app.innerHTML=`<section class="hero"><div class="hero-copy"><h1>User Study<br>VanLife Chatbot</h1><p class="lede">Browse the furniture here before and during the study. The assistant's suggestions appear in the bar at the top.</p><div class="hero-actions"><a class="primarybtn" href="#furniture-library">Browse furniture</a></div></div></section>
-  <section id="furniture-library" aria-labelledby="library-title"><div class="home-intro"><div><h2 id="library-title">Furniture library</h2><p>Browse all furniture, or filter by area.</p><p class="library-count" id="library-count" role="status" aria-live="polite"></p></div></div><div class="controls"><input class="search" id="search" type="search" aria-label="Search furniture" placeholder="Search furniture…"><div class="filters" role="group" aria-label="Filter furniture by area">${['All',...AREAS].map(area=>`<button class="filter" data-filter="${area}" aria-pressed="false">${area}</button>`).join('')}</div></div><div class="grid" id="furniture-grid"></div></section>
+  <section id="furniture-library" aria-labelledby="library-title"><div class="catalog-heading"><div class="home-intro"><div><h2 id="library-title">Furniture library</h2><p>Browse all furniture, or filter by area.</p><p class="library-count" id="library-count" role="status" aria-live="polite"></p></div></div><div class="controls"><input class="search" id="search" type="search" aria-label="Search furniture" placeholder="Search furniture…"><div class="filters" role="group" aria-label="Filter furniture by area">${['All',...AREAS].map(area=>`<button class="filter" data-filter="${area}" aria-pressed="false">${area}</button>`).join('')}</div></div></div><div class="grid" id="furniture-grid"></div></section>
   <div class="site-note">User Study — VanLife Chatbot · Interaction Research Lab, Cornell University</div>`;
   document.getElementById('search').oninput=e=>{state.q=e.target.value;renderLibrary()};
   document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{state.filter=button.dataset.filter;renderLibrary()});
@@ -243,5 +243,5 @@ const updateHeaderHeight=()=>document.documentElement.style.setProperty('--heade
 updateHeaderHeight();
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(updateHeaderHeight).observe(header);
 if(location.hash==='#furniture-library')document.getElementById('furniture-library').scrollIntoView();
-</script><script src="live.js?v=46"></script>
+</script><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script><script src="live.js?v=47"></script>
 </body></html>

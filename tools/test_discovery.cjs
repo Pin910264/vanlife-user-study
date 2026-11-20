@@ -160,7 +160,7 @@ if (process.argv[3]) {
     fetch: async url => { calls.push(url); return {ok: true, json: async () => response}; },
     applyStage: (...args) => received.push(['stage', ...args]), applyDiscovery: d => received.push(['discovery', d]),
     applySurvey: url => received.push(['survey', url]), applyWords() {}, applyTalkSentence() {}, applyDemo() {},
-    render() {}, drawPlan() {}, applyPlacement() {}, setSpeaking() {}, setState() {}, showNoteBox() {}, window: {},
+    updateWorkspace: async () => {}, render() {}, drawPlan() {}, applyPlacement() {}, setSpeaking() {}, setState() {}, showNoteBox() {}, window: {},
     document: {getElementById: id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); }},
   });
   vm.runInContext(polling + '\nglobalThis.tick = tick;', context);

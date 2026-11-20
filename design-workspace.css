@@ -1,0 +1,45 @@
+#design-workspace:not([hidden]){display:grid;grid-template-columns:minmax(0,calc(var(--catalog,50%) - 7px)) 14px minmax(0,1fr);width:100%;min-height:0;flex:1}
+#design-workspace #app{min-width:0;width:100%;overflow:auto;padding:16px;margin:0}
+#design-workspace .hero,#design-workspace #liveplanhint{display:none}
+#design-workspace .grid{grid-template-columns:repeat(auto-fill,minmax(min(145px,100%),1fr))}
+#design-workspace .splitter{border:0;padding:0;background:#e2e8f0;color:#475569;cursor:col-resize;touch-action:none}
+#design-workspace .van-views{min-width:0;min-height:0;display:grid;grid-template-rows:1fr 1fr;gap:8px;padding:8px}
+#design-workspace .perspective{display:flex;flex-direction:column;min-height:0;background:#e9edf2;border-radius:10px;overflow:hidden}
+#design-workspace .perspective h2{font-size:15px;margin:10px 14px}
+#design-workspace .van-canvas{position:relative;flex:1;min-height:0}
+#design-workspace canvas{display:block;width:100%;height:100%}
+#design-workspace .van-canvas span{position:absolute;bottom:8px;left:12px;color:#334155;background:#e9edf2}
+#design-workspace #liveplanbox{position:static;width:auto;display:flex;flex-direction:column;min-height:0;max-height:none;box-shadow:none;cursor:default;overflow:auto}
+#design-workspace #liveplan{min-height:70px;flex:1;cursor:crosshair;height:0}
+@media(max-width:650px){#design-workspace:not([hidden]){height:auto;grid-template-columns:minmax(0,1fr)}#design-workspace .splitter{display:none}#design-workspace #app{max-height:50dvh}#design-workspace .van-views{height:650px}}
+
+@media(min-width:651px){
+  body:has(> #design-workspace:not([hidden])){height:100dvh;display:flex;flex-direction:column}
+  body:has(> #design-workspace:not([hidden])) > :not(#design-workspace){flex-shrink:0}
+}
+#design-workspace .view-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:12px;flex-wrap:wrap}
+#design-workspace .zoom-controls{display:flex;gap:5px;margin:6px 0}
+#design-workspace .zoom-controls button,#design-workspace #liveplanbox button{
+  background:#fff;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:600 13px system-ui;cursor:pointer
+}
+#design-workspace .zoom-controls button:hover,#design-workspace #liveplanbox button:enabled:hover{background:#f1f5f9}
+#design-workspace #liveplanbox{background:#fff;border:1px solid var(--line);color:var(--text)}
+#design-workspace #liveplanbox .pt{color:var(--text);font:700 15px system-ui;padding:10px 14px}
+#design-workspace #liveplanbox .pt .x{color:#475569}
+#design-workspace #liveplanbox .placement-tools{--plan-tools-color:#475569;border-top:1px solid var(--line)}
+#design-workspace #liveplan>rect:first-child{fill:#f1f5f9;stroke:#94a3b8}
+#design-workspace #liveplan text[fill="#94a3b8"]{fill:#475569}
+#design-workspace #liveplan text[fill="#60a5fa"]{fill:#1554a0}
+
+#design-workspace #app{padding-top:0}
+#design-workspace .home-intro{margin:0 0 8px;padding-top:20px}
+#design-workspace .home-intro h2{font-size:20px;line-height:1.2}
+#design-workspace .catalog-heading{position:sticky;top:0;z-index:20;background:var(--bg);display:flow-root}
+#design-workspace .home-intro{align-items:flex-start;flex-wrap:wrap;gap:6px 16px}
+#design-workspace #livenotice{margin-left:auto;max-width:100%}
+#design-workspace .controls{position:static;background:var(--bg)}
+#design-workspace .placement-tools{padding:12px 14px !important;line-height:1.45}
+#design-workspace .placement-instruction{font-size:14px;font-weight:600;color:var(--text)}
+#design-workspace .placement-row{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;margin:8px 0}
+#design-workspace .placement-actions{display:flex;gap:6px}
+#design-workspace .placement-timing{color:var(--muted);font-size:12px}

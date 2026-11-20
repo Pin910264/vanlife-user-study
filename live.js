@@ -187,10 +187,8 @@
   #livetour h3{margin:4px 0 8px;font-size:18px}#livetour p{margin:0 0 14px;font-size:15px;line-height:1.5;color:#374151}
   #livetour button{font-size:15px;padding:10px 18px;border-radius:10px;border:0;background:#111827;color:#fff;cursor:pointer}
   #livestwrap.open #livemenu{z-index:86}
-  #livenotice{max-width:1180px;margin:18px auto 0;padding:0 24px}
-  #livenotice .card{background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;display:flex;gap:14px;align-items:center;font-size:16px;color:#78350f}
-  #livenotice .card b{font-weight:800}
-  #livenotice .x{margin-left:auto;border:0;background:transparent;font-size:20px;cursor:pointer;color:#92400e}
+  #livenotice .browse-tip{display:flex;align-items:center;gap:8px;background:#fffbeb;color:#78350f;border:1px solid #fcd34d;border-radius:7px;padding:3px 6px 3px 10px;font:500 12px/1.4 system-ui}
+  #livenotice .x{background:transparent;border:0;color:inherit;cursor:pointer;font-size:17px;line-height:1;padding:2px 4px}
   @media(max-width:640px){#livestage .card{padding:24px 20px}#livestage .words span{font-size:28px;padding:14px 18px}#livestage .sentence{font-size:20px}}`;
   document.head.appendChild(css);
 
@@ -214,8 +212,12 @@
   planbox.innerHTML = '<div class="pt"><span>Your van from above</span><span id="livepn" class="x"></span><span class="sp"></span><button type="button" class="x" id="liveplanhint">Enlarge</button></div><svg id="liveplan" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet"></svg>';
   document.body.appendChild(planbox);
   const placementTools = document.createElement('div');
-  placementTools.style.cssText = 'padding:8px 12px;color:#cbd5e1;font-size:12px;display:none';
-  placementTools.innerHTML = '<div>Click a spot, then tell the assistant what goes there.</div><div id="placementstatus" role="status" aria-live="polite"></div><button type="button" id="placementclear">Clear location</button> <button type="button" id="placementretry" hidden>Retry</button><div style="margin-top:4px">Changes made while the assistant is thinking apply to the next turn.</div>';
+  placementTools.className = 'placement-tools';
+  placementTools.style.cssText = 'padding:8px 12px;color:var(--plan-tools-color,#cbd5e1);font-size:12px;display:none';
+  placementTools.innerHTML = `<div class="placement-instruction">Click a spot, then tell the assistant what goes there.</div>
+    <div class="placement-row"><span id="placementstatus" role="status" aria-live="polite"></span>
+      <div class="placement-actions"><button type="button" id="placementclear">Clear location</button> <button type="button" id="placementretry" hidden>Retry</button></div></div>
+    <div class="placement-timing">If the assistant is thinking, your change applies to the next turn.</div>`;
   planbox.appendChild(placementTools);
   const planSvg = document.getElementById('liveplan');
   let planGeometry = null, placementState = {revision: 0, marker: null};
@@ -282,7 +284,7 @@
   placementTools.onkeydown = e => e.stopPropagation();
   planSvg.onclick = e => {
     e.stopPropagation();
-    if (!planbox.classList.contains('big')) { setPlanBig(true); return; }
+    if (!planbox.classList.contains('big') && !planbox.classList.contains('docked')) { setPlanBig(true); return; }
     if (!planGeometry || placementBusy) return;
     const matrix = planSvg.getScreenCTM(); if (!matrix) return;
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse());
@@ -297,9 +299,9 @@
   const stageBox = document.createElement('div'); stageBox.id = 'livestage'; stageBox.style.display = 'none';
   app.parentNode.insertBefore(stageBox, app);
   const notice = document.createElement('div'); notice.id = 'livenotice'; notice.style.display = 'none';
-  app.parentNode.insertBefore(notice, app);
-  notice.innerHTML = '<div class="card"><span>👀</span><div><b>Take a moment to browse your options.</b> When you are ready to start designing, just say so.</div><button class="x" title="hide">×</button></div>';
-  notice.querySelector('.x').onclick = () => { notice.style.display = 'none'; liveEvent('notice_closed', {}); };
+  app.querySelector('.home-intro').appendChild(notice);
+  notice.innerHTML = '<div class="browse-tip"><span>Browse the catalog. Say when you’re ready to design.</span><button type="button" class="x" aria-label="Dismiss browsing tip">×</button></div>';
+  notice.querySelector('.x').onclick = () => { notice.style.visibility = 'hidden'; liveEvent('notice_closed', {}); };
   const FIELDS = [['from', 'where you start'], ['who', 'who'], ['where', 'where'], ['when', 'time of year'], ['activity', 'activity']];
   const LEAD = "I am ready to start designing. ";   // the fixed opening: the wizard knows this is the sentence, not a stray turn
   // what they typed survives a reload of THIS session only: the store is keyed by the
@@ -630,7 +632,7 @@
     panel.querySelector('.discovery-announcement').textContent = countText + '. ' + (current ? 'Talking about ' + current.label.toLowerCase() + '.' : 'Conversation notes updated.');
   }
   function setPlanBig(big) {
-    if (planbox.classList.contains('big') === big) return;
+    if (planbox.classList.contains('docked') || planbox.classList.contains('big') === big) return;
     if (!big && onPracticePin) return;                  // the map stays open while the pin card is up (P30): a tap on the dim or Esc must not fold it
     planbox.classList.toggle('big', big);
     document.getElementById('liveplanhint').textContent = big ? 'Minimize' : 'Enlarge';
@@ -737,11 +739,11 @@
 
   // ── top-down plan (P5): the pieces on the floor, from the wizard's scene feed ──
   let planKey = '';
-  function drawPlan(floor, van, chosenSet) {
-    const key = JSON.stringify([floor, van]) + '|' + [...chosenSet].join(',');
+  function drawPlan(floor, van, chosenSet, design = false) {
+    const key = JSON.stringify([floor, van, design]) + '|' + [...chosenSet].join(',');
     if (key === planKey) return;
     planKey = key;
-    const W = 1000, H = 560, MX = 90, T = 10;
+    const W = 1000, H = 560, MX = design ? 130 : 90, T = 10;
     const Z0 = van.z[0], Z1 = van.z[1], X0 = van.x[0], X1 = van.x[1];
     const sz = (W - 2 * MX) / (Z1 - Z0), sx = sz;                 // true proportions
     const vh = (X1 - X0) * sx, MY = (H - T - vh) / 2;
@@ -751,11 +753,21 @@
     const pal = ['#cfe3ff', '#ffe2b8', '#d6f5d6', '#f6d6f0', '#fff3b0', '#d9d9f3', '#ffd6d6', '#c9f0f0'];
     let g = `<rect x="${PX(Z0)}" y="${PY(X0)}" width="${(Z1 - Z0) * sz}" height="${vh}" rx="14" fill="#1f2937" stroke="#94a3b8" stroke-width="2"/>`
       + `<text x="${PX(Z0) - 8}" y="${PY(X0) + vh / 2 + 4}" text-anchor="end" font-size="12" fill="#94a3b8">REAR DOORS</text>`
-      + `<text x="${PX(Z1) + 8}" y="${PY(X0) + vh / 2 + 4}" text-anchor="start" font-size="12" fill="#94a3b8">FRONT · cab</text>`
+      + `<text x="${PX(Z1) + (design ? 40 : 8)}" y="${PY(X0) + vh / 2 + 4}" text-anchor="${design ? "middle" : "start"}" font-size="12" fill="#94a3b8">FRONT · cab</text>`
       + `<text x="${W / 2}" y="${PY(X0) - 6}" text-anchor="middle" font-size="12" fill="#94a3b8">DRIVER SIDE</text>`
-      + `<text x="${W / 2}" y="${PY(X1) + 16}" text-anchor="middle" font-size="12" fill="#94a3b8">PASSENGER SIDE</text>`
-      + `<line x1="${PX(30)}" y1="${PY(X1)}" x2="${PX(40)}" y2="${PY(X1)}" stroke="#60a5fa" stroke-width="6"/>`
+      + `<text x="${W / 2}" y="${PY(X1) + 16}" text-anchor="middle" font-size="12" fill="#94a3b8">PASSENGER SIDE</text>`;
+    if (design) {
+      const cabX = PX(Z1) + 9, midY = PY(X0) + vh / 2;
+      for (const seatY of [midY - 55, midY + 24]) {
+        g += `<g transform="translate(${cabX + 13} ${seatY})" aria-hidden="true" fill="#e2e8f0" stroke="#64748b" stroke-width="2">
+          <rect x="3" y="2" width="28" height="27" rx="7"/>
+          <rect x="0" y="0" width="7" height="31" rx="3"/>
+        </g>`;
+      }
+    } else {
+      g += `<line x1="${PX(30)}" y1="${PY(X1)}" x2="${PX(40)}" y2="${PY(X1)}" stroke="#60a5fa" stroke-width="6"/>`
       + `<text x="${PX(35)}" y="${PY(X1) - 6}" text-anchor="middle" font-size="10" fill="#60a5fa">sliding door</text>`;
+    }
     floor.forEach((f, i) => {
       const z0 = Math.max(Math.min(f.z0, f.z1), Z0), z1 = Math.min(Math.max(f.z0, f.z1), Z1);
       const x0 = Math.max(Math.min(f.x0, f.x1), X0), x1 = Math.min(Math.max(f.x0, f.x1), X1);
@@ -896,6 +908,17 @@
     tx.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });
   }
 
+  let workspace;
+  let workspaceModule;
+  async function updateWorkspace(stage, scene) {
+    if (stage !== 'browse') { workspace?.close(); return; }
+    workspaceModule ||= import('./design-workspace.js');
+    const { createWorkspace } = await workspaceModule;
+    if (shownStage !== 'browse') return;
+    workspace ||= createWorkspace(app, planbox, placementTools);
+    workspace.show(scene);
+  }
+
   async function tick() {
     try {
       const r = await fetch(`${FEED}/p/state?key=${encodeURIComponent(KEY)}${SAMPLE}${STAGE}`, { cache: 'no-store' });
@@ -909,7 +932,8 @@
       document.getElementById('livedot').className = 'dot on';
       document.getElementById('livenote').textContent = shownStage === 'talk' ? 'ideas appear below' : (s.mentions || []).some(m => m.items && m.items.length) ? 'latest reply' : 'waiting for the first suggestion';
       render(s.mentions || [], chosenChanged);
-      if (s.van && s.floor) drawPlan(s.floor, s.van, chosen);
+      updateWorkspace(s.stage || 'browse', s.scene3d).catch(console.error);
+      if (s.van && s.floor) drawPlan(s.floor, s.van, chosen, shownStage === 'browse');
       applyPlacement(s.placement);
       window.liveSpeaking = !!s.speaking;
       setSpeaking(!!s.speaking);
